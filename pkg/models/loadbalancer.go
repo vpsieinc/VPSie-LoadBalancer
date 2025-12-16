@@ -25,14 +25,14 @@ const (
 type LoadBalancer struct {
 	CreatedAt      time.Time         `json:"created_at" yaml:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at" yaml:"updated_at"`
-	Backends       []Backend         `json:"backends" yaml:"backends"`
+	HealthCheck    *HealthCheck      `json:"health_check,omitempty" yaml:"health_check,omitempty"`
+	TLSConfig      *TLSConfig        `json:"tls_config,omitempty" yaml:"tls_config,omitempty"`
+	Timeouts       *Timeouts         `json:"timeouts,omitempty" yaml:"timeouts,omitempty"`
 	ID             string            `json:"id" yaml:"id"`
 	Name           string            `json:"name" yaml:"name"`
 	Protocol       Protocol          `json:"protocol" yaml:"protocol"`
 	Algorithm      LoadBalancingAlgo `json:"algorithm" yaml:"algorithm"`
-	HealthCheck    *HealthCheck      `json:"health_check,omitempty" yaml:"health_check,omitempty"`
-	TLSConfig      *TLSConfig        `json:"tls_config,omitempty" yaml:"tls_config,omitempty"`
-	Timeouts       *Timeouts         `json:"timeouts,omitempty" yaml:"timeouts,omitempty"`
+	Backends       []Backend         `json:"backends" yaml:"backends"`
 	Port           int               `json:"port" yaml:"port"`
 	MaxConnections int               `json:"max_connections,omitempty" yaml:"max_connections,omitempty"`
 }

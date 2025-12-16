@@ -11,14 +11,14 @@ const (
 
 // HealthCheck represents health check configuration
 type HealthCheck struct {
-	ExpectedStatus     []int             `json:"expected_status,omitempty" yaml:"expected_status,omitempty"`
-	Path               string            `json:"path,omitempty" yaml:"path,omitempty"` // for HTTP/HTTPS
-	Type               HealthCheckType   `json:"type" yaml:"type"`
 	Headers            map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
-	Interval           int               `json:"interval" yaml:"interval"`                       // seconds
-	Timeout            int               `json:"timeout" yaml:"timeout"`                         // seconds
-	UnhealthyThreshold int               `json:"unhealthy_threshold" yaml:"unhealthy_threshold"` // consecutive failures
-	HealthyThreshold   int               `json:"healthy_threshold" yaml:"healthy_threshold"`     // consecutive successes
+	Path               string            `json:"path,omitempty" yaml:"path,omitempty"`
+	Type               HealthCheckType   `json:"type" yaml:"type"`
+	ExpectedStatus     []int             `json:"expected_status,omitempty" yaml:"expected_status,omitempty"`
+	Interval           int               `json:"interval" yaml:"interval"`
+	Timeout            int               `json:"timeout" yaml:"timeout"`
+	UnhealthyThreshold int               `json:"unhealthy_threshold" yaml:"unhealthy_threshold"`
+	HealthyThreshold   int               `json:"healthy_threshold" yaml:"healthy_threshold"`
 }
 
 // Validate validates the health check configuration
