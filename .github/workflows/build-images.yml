@@ -53,7 +53,7 @@ jobs:
       - name: Upload agent binary
         uses: actions/upload-artifact@v4
         with:
-          name: agent-binaries
+          name: agent-binary-${{ matrix.goarch }}
           path: build/vpsie-lb-agent-${{ matrix.goarch }}
 
   build-qcow2-amd64:
@@ -64,10 +64,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download agent binaries
+      - name: Download agent binary
         uses: actions/download-artifact@v4
         with:
-          name: agent-binaries
+          name: agent-binary-amd64
           path: build/
 
       - name: Set version
@@ -103,13 +103,13 @@ jobs:
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qcow2-images
+          name: qcow2-image-amd64
           path: packer/output/amd64/*.qcow2
 
       - name: Upload checksums
         uses: actions/upload-artifact@v4
         with:
-          name: checksums
+          name: checksum-amd64
           path: packer/output/amd64/*.checksum
 
   build-qcow2-arm64:
@@ -120,10 +120,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download agent binaries
+      - name: Download agent binary
         uses: actions/download-artifact@v4
         with:
-          name: agent-binaries
+          name: agent-binary-arm64
           path: build/
 
       - name: Set version
@@ -159,13 +159,13 @@ jobs:
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qcow2-images
+          name: qcow2-image-arm64
           path: packer/output/arm64/*.qcow2
 
       - name: Upload checksums
         uses: actions/upload-artifact@v4
         with:
-          name: checksums
+          name: checksum-arm64
           path: packer/output/arm64/*.checksum
 
   create-release:
@@ -184,9 +184,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            qcow2-images/*.qcow2
-            checksums/*.checksum
-            agent-binaries/*
+            qcow2-image-amd64/*.qcow2
+            qcow2-image-arm64/*.qcow2
+            checksum-amd64/*.checksum
+            checksum-arm64/*.checksum
+            agent-binary-amd64/*
+            agent-binary-arm64/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
