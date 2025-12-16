@@ -11,7 +11,7 @@ import (
 
 // Config represents the agent configuration
 type Config struct {
-	Envoy   EnvoyConfig   `yaml:"envoy"`
+	Envoy   EnvoySettings `yaml:"envoy"`
 	Logging LoggingConfig `yaml:"logging"`
 	VPSie   VPSieConfig   `yaml:"vpsie"`
 }
@@ -24,8 +24,8 @@ type VPSieConfig struct {
 	PollInterval   time.Duration `yaml:"poll_interval"`
 }
 
-// EnvoyConfig contains Envoy-specific configuration
-type EnvoyConfig struct {
+// EnvoySettings contains Envoy-specific configuration
+type EnvoySettings struct {
 	ConfigPath   string `yaml:"config_path"`
 	AdminAddress string `yaml:"admin_address"`
 	BinaryPath   string `yaml:"binary_path"`

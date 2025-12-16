@@ -128,7 +128,7 @@ func (a *Agent) syncConfiguration() error {
 	}
 
 	// Generate new Envoy configuration
-	var envoyConfig *EnvoyConfig
+	var envoyConfig *envoy.EnvoyConfig
 	envoyConfig, err = a.envoyGenerator.GenerateFullConfig(lb)
 	if err != nil {
 		return fmt.Errorf("failed to generate Envoy config: %w", err)
