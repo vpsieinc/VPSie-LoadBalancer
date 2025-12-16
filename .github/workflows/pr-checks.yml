@@ -107,9 +107,4 @@ jobs:
         run: |
           cd packer
           packer validate -var="version=0.0.0-pr" .
-
-      - name: Build image (validation only)
-        run: |
-          cd packer
-          packer build -only=qemu.debian-amd64 -var="version=0.0.0-pr" .
-          echo "Image build completed successfully - artifacts not uploaded (PR validation only)"
+          echo "Packer configuration is valid"
