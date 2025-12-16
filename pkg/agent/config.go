@@ -11,9 +11,9 @@ import (
 
 // Config represents the agent configuration
 type Config struct {
-	VPSie   VPSieConfig   `yaml:"vpsie"`
 	Envoy   EnvoyConfig   `yaml:"envoy"`
 	Logging LoggingConfig `yaml:"logging"`
+	VPSie   VPSieConfig   `yaml:"vpsie"`
 }
 
 // VPSieConfig contains VPSie API configuration

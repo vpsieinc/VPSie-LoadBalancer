@@ -109,8 +109,8 @@ func (a *Agent) syncConfiguration() error {
 	}
 
 	// Validate configuration
-	if err := lb.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration from VPSie: %w", err)
+	if validateErr := lb.Validate(); validateErr != nil {
+		return fmt.Errorf("invalid configuration from VPSie: %w", validateErr)
 	}
 
 	// Check if configuration has changed

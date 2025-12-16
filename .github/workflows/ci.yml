@@ -104,11 +104,8 @@ jobs:
       - name: Initialize Packer
         run: packer init packer/
 
-      - name: Validate amd64 template
-        run: packer validate -var="version=test" packer/debian-amd64.pkr.hcl
-
-      - name: Validate arm64 template
-        run: packer validate -var="version=test" packer/debian-arm64.pkr.hcl
+      - name: Validate Packer templates
+        run: packer validate -var="version=test" packer/
 
   security-scan:
     name: Security Scan

@@ -81,8 +81,8 @@ func (r *Reloader) ReloadGraceful() error {
 	}
 
 	// Send SIGHUP signal
-	if err := process.Signal(syscall.SIGHUP); err != nil {
-		return fmt.Errorf("failed to send SIGHUP to Envoy: %w", err)
+	if signalErr := process.Signal(syscall.SIGHUP); signalErr != nil {
+		return fmt.Errorf("failed to send SIGHUP to Envoy: %w", signalErr)
 	}
 
 	return nil

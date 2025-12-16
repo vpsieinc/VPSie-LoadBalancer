@@ -24,11 +24,11 @@ const (
 // LoadBalancer represents the main load balancer configuration
 type LoadBalancer struct {
 	Backends       []Backend         `json:"backends" yaml:"backends"`
-	CreatedAt      time.Time         `json:"created_at" yaml:"created_at"`
-	UpdatedAt      time.Time         `json:"updated_at" yaml:"updated_at"`
 	HealthCheck    *HealthCheck      `json:"health_check,omitempty" yaml:"health_check,omitempty"`
 	TLSConfig      *TLSConfig        `json:"tls_config,omitempty" yaml:"tls_config,omitempty"`
 	Timeouts       *Timeouts         `json:"timeouts,omitempty" yaml:"timeouts,omitempty"`
+	CreatedAt      time.Time         `json:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at" yaml:"updated_at"`
 	ID             string            `json:"id" yaml:"id"`
 	Name           string            `json:"name" yaml:"name"`
 	Protocol       Protocol          `json:"protocol" yaml:"protocol"`

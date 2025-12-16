@@ -203,8 +203,8 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute cluster template: %w", err)
+	if execErr := tmpl.Execute(&buf, data); execErr != nil {
+		return nil, fmt.Errorf("failed to execute cluster template: %w", execErr)
 	}
 
 	return buf.Bytes(), nil
@@ -231,11 +231,11 @@ func (g *Generator) GenerateFullConfig(lb *models.LoadBalancer) (*EnvoyConfig, e
 
 	// Parse YAML to ensure it's valid
 	var listenerData, clusterData interface{}
-	if err := yaml.Unmarshal(listenerYAML, &listenerData); err != nil {
-		return nil, fmt.Errorf("invalid listener YAML: %w", err)
+	if unmarshalErr := yaml.Unmarshal(listenerYAML, &listenerData); unmarshalErr != nil {
+		return nil, fmt.Errorf("invalid listener YAML: %w", unmarshalErr)
 	}
-	if err := yaml.Unmarshal(clusterYAML, &clusterData); err != nil {
-		return nil, fmt.Errorf("invalid cluster YAML: %w", err)
+	if unmarshalErr := yaml.Unmarshal(clusterYAML, &clusterData); unmarshalErr != nil {
+		return nil, fmt.Errorf("invalid cluster YAML: %w", unmarshalErr)
 	}
 
 	return &EnvoyConfig{

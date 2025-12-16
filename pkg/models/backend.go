@@ -3,7 +3,7 @@ package models
 // Backend represents a backend server
 type Backend struct {
 	ID      string `json:"id" yaml:"id"`
-	Address string `json:"address" yaml:"address"` // IP or hostname
+	Address string `json:"address" yaml:"address"`                   // IP or hostname
 	Status  string `json:"status,omitempty" yaml:"status,omitempty"` // up, down, unknown
 	Port    int    `json:"port" yaml:"port"`
 	Weight  int    `json:"weight,omitempty" yaml:"weight,omitempty"`
