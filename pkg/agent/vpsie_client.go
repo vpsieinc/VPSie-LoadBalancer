@@ -114,8 +114,8 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) (*VPSieClient, error
 	}
 
 	// Validate hostname matches expected VPSie domains (whitelist)
-	if err := validateHostname(parsedURL.Hostname()); err != nil {
-		return nil, err
+	if hostErr := validateHostname(parsedURL.Hostname()); hostErr != nil {
+		return nil, hostErr
 	}
 
 	return &VPSieClient{
