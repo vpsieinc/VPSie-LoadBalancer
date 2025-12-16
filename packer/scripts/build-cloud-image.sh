@@ -123,10 +123,45 @@ cat > "${TEMP_DIR}/99-vpsie-lb-limits.conf" <<'EOF'
 * hard nproc 4096
 EOF
 
-# Create firstboot script for network-dependent operations
+# Create firstboot script for all setup operations
+# This approach works for both amd64 and arm64 (cross-architecture compatible)
 cat > "${TEMP_DIR}/vpsie-firstboot.sh" <<'FIRSTBOOT'
 #!/bin/bash
 set -e
+
+STAGING_DIR="/root/vpsie-staging"
+
+# Create directories
+mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy /usr/local/bin
+
+# Move staged files to final locations
+if [ -d "${STAGING_DIR}" ]; then
+    # Move agent binary
+    if [ -f "${STAGING_DIR}/vpsie-lb-agent" ]; then
+        mv "${STAGING_DIR}/vpsie-lb-agent" /usr/local/bin/
+        chmod +x /usr/local/bin/vpsie-lb-agent
+    fi
+
+    # Move systemd service files
+    for service in vpsie-lb-agent.service envoy.service; do
+        if [ -f "${STAGING_DIR}/${service}" ]; then
+            mv "${STAGING_DIR}/${service}" /etc/systemd/system/
+        fi
+    done
+
+    # Move sysctl config
+    if [ -f "${STAGING_DIR}/99-vpsie-lb.conf" ]; then
+        mv "${STAGING_DIR}/99-vpsie-lb.conf" /etc/sysctl.d/
+    fi
+
+    # Move limits config
+    if [ -f "${STAGING_DIR}/99-vpsie-lb-limits.conf" ]; then
+        mv "${STAGING_DIR}/99-vpsie-lb-limits.conf" /etc/security/limits.d/
+    fi
+
+    # Cleanup staging directory
+    rm -rf "${STAGING_DIR}"
+fi
 
 # Wait for network
 sleep 10
@@ -143,10 +178,11 @@ cp ~/.func-e/versions/1.28.0/bin/envoy /usr/bin/envoy
 # Create envoy user
 useradd --system --no-create-home --shell /bin/false envoy || true
 
-# Create directories
-mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy
+# Apply sysctl settings
+sysctl -p /etc/sysctl.d/99-vpsie-lb.conf || true
 
-# Enable services
+# Reload systemd and enable services
+systemctl daemon-reload
 systemctl enable vpsie-lb-agent.service
 systemctl enable envoy.service
 systemctl enable qemu-guest-agent.service
@@ -156,8 +192,7 @@ systemctl start qemu-guest-agent.service
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Remove this script after first run
-rm -f /var/lib/vpsie-firstboot-done
+# Mark firstboot as done
 touch /var/lib/vpsie-firstboot-done
 FIRSTBOOT
 chmod +x "${TEMP_DIR}/vpsie-firstboot.sh"
@@ -179,20 +214,29 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 EOF
 
-# Run virt-customize (no network operations - just copy files)
+# Create staging directory structure
+STAGING_DIR="${TEMP_DIR}/staging"
+mkdir -p "${STAGING_DIR}"
+
+# Copy all files to staging directory
+cp "${TEMP_DIR}/vpsie-lb-agent" "${STAGING_DIR}/"
+cp "${TEMP_DIR}/vpsie-lb-agent.service" "${STAGING_DIR}/"
+cp "${TEMP_DIR}/envoy.service" "${STAGING_DIR}/"
+cp "${TEMP_DIR}/99-vpsie-lb.conf" "${STAGING_DIR}/"
+cp "${TEMP_DIR}/99-vpsie-lb-limits.conf" "${STAGING_DIR}/"
+
+# Run virt-customize (no network, no run-command - cross-architecture compatible)
+# Files are staged to /root/vpsie-staging and moved by firstboot script
 virt-customize -a "${OUTPUT_IMAGE}" \
     --no-network \
-    --run-command 'mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy /usr/local/bin' \
-    --copy-in "${TEMP_DIR}/vpsie-lb-agent:/usr/local/bin/" \
-    --copy-in "${TEMP_DIR}/vpsie-lb-agent.service:/etc/systemd/system/" \
-    --copy-in "${TEMP_DIR}/envoy.service:/etc/systemd/system/" \
-    --copy-in "${TEMP_DIR}/99-vpsie-lb.conf:/etc/sysctl.d/" \
-    --copy-in "${TEMP_DIR}/99-vpsie-lb-limits.conf:/etc/security/limits.d/" \
-    --copy-in "${TEMP_DIR}/vpsie-firstboot.sh:/usr/local/bin/" \
+    --mkdir /root/vpsie-staging \
+    --copy-in "${STAGING_DIR}/vpsie-lb-agent:/root/vpsie-staging/" \
+    --copy-in "${STAGING_DIR}/vpsie-lb-agent.service:/root/vpsie-staging/" \
+    --copy-in "${STAGING_DIR}/envoy.service:/root/vpsie-staging/" \
+    --copy-in "${STAGING_DIR}/99-vpsie-lb.conf:/root/vpsie-staging/" \
+    --copy-in "${STAGING_DIR}/99-vpsie-lb-limits.conf:/root/vpsie-staging/" \
     --copy-in "${TEMP_DIR}/vpsie-firstboot.service:/etc/systemd/system/" \
-    --run-command 'chmod +x /usr/local/bin/vpsie-lb-agent' \
-    --run-command 'chmod +x /usr/local/bin/vpsie-firstboot.sh' \
-    --run-command 'systemctl enable vpsie-firstboot.service'
+    --firstboot "${TEMP_DIR}/vpsie-firstboot.sh"
 
 # Generate checksum
 echo "=== Generating checksum ==="
