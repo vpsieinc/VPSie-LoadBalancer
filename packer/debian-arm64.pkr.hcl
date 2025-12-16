@@ -7,16 +7,6 @@ packer {
   }
 }
 
-variable "version" {
-  type    = string
-  default = "1.0.0"
-}
-
-variable "debian_version" {
-  type    = string
-  default = "12.2.0"
-}
-
 source "qemu" "debian-arm64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-${var.debian_version}-arm64-netinst.iso"
   iso_checksum     = "file:https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/SHA256SUMS"

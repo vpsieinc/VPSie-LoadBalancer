@@ -9,7 +9,6 @@ linters-settings:
     check-blank: true
 
   govet:
-    check-shadowing: true
     enable-all: true
 
   gocyclo:
@@ -62,8 +61,8 @@ linters:
     - goconst
     - nakedret
     - prealloc
-    - exportloopref
     - gosec
+    - shadow
 
 issues:
   exclude-rules:

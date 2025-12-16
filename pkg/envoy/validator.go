@@ -20,6 +20,7 @@ func NewValidator(envoyBinary string) *Validator {
 // ValidateConfig validates an Envoy configuration file
 func (v *Validator) ValidateConfig(configPath string) error {
 	// Run envoy with --mode validate
+	// #nosec G204 -- envoyBinary is set at initialization, not from user input
 	cmd := exec.Command(v.envoyBinary, "--mode", "validate", "-c", configPath)
 
 	output, err := cmd.CombinedOutput()

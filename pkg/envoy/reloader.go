@@ -32,6 +32,7 @@ func (r *Reloader) Reload() error {
 	r.currentEpoch++
 
 	// Build command for hot restart
+	// #nosec G204 -- envoyBinary is set at initialization, not from user input
 	cmd := exec.Command(
 		r.envoyBinary,
 		"-c", r.configPath,
