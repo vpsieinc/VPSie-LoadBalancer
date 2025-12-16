@@ -2,6 +2,9 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -180,11 +183,19 @@ func (a *Agent) reloadEnvoy() error {
 	return nil
 }
 
-// computeConfigHash computes a hash of the configuration for change detection
+// computeConfigHash computes a cryptographic hash of the configuration for change detection
 func (a *Agent) computeConfigHash(lb *models.LoadBalancer) string {
-	// Simple hash based on update timestamp and backend count
-	// In production, use a proper hash function
-	return fmt.Sprintf("%s-%d-%d", lb.UpdatedAt.Format(time.RFC3339), len(lb.Backends), lb.Port)
+	// Marshal the entire configuration to JSON to capture all changes
+	data, err := json.Marshal(lb)
+	if err != nil {
+		// Fallback to a timestamp-based hash if marshaling fails
+		log.Printf("Warning: Failed to marshal config for hashing: %v", err)
+		return fmt.Sprintf("%s-%d-%d", lb.UpdatedAt.Format(time.RFC3339), len(lb.Backends), lb.Port)
+	}
+
+	// Compute SHA-256 hash of the JSON representation
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:])
 }
 
 // IsRunning returns true if the agent is running
