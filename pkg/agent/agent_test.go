@@ -194,20 +194,21 @@ func TestAgent_computeConfigHash(t *testing.T) {
 }
 
 func TestAgent_IsRunning(t *testing.T) {
-	agent := &Agent{running: false}
+	agent := &Agent{}
 
 	if agent.IsRunning() {
 		t.Error("Expected agent to not be running initially")
 	}
 
-	agent.running = true
+	agent.running.Store(true)
 	if !agent.IsRunning() {
 		t.Error("Expected agent to be running after setting flag")
 	}
 }
 
 func TestAgent_Stop(t *testing.T) {
-	agent := &Agent{running: true}
+	agent := &Agent{}
+	agent.running.Store(true)
 
 	agent.Stop()
 

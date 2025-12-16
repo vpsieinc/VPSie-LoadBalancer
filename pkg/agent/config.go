@@ -12,8 +12,8 @@ import (
 // Config represents the agent configuration
 type Config struct {
 	Envoy   EnvoySettings `yaml:"envoy"`
-	Logging LoggingConfig `yaml:"logging"`
 	VPSie   VPSieConfig   `yaml:"vpsie"`
+	Logging LoggingConfig `yaml:"logging"`
 }
 
 // VPSieConfig contains VPSie API configuration
@@ -26,9 +26,12 @@ type VPSieConfig struct {
 
 // EnvoySettings contains Envoy-specific configuration
 type EnvoySettings struct {
-	ConfigPath   string `yaml:"config_path"`
-	AdminAddress string `yaml:"admin_address"`
-	BinaryPath   string `yaml:"binary_path"`
+	ConfigPath     string `yaml:"config_path"`
+	AdminAddress   string `yaml:"admin_address"`
+	BinaryPath     string `yaml:"binary_path"`
+	PidFile        string `yaml:"pid_file"`
+	AdminPort      int    `yaml:"admin_port"`
+	MaxConnections int    `yaml:"max_connections"`
 }
 
 // LoggingConfig contains logging configuration
@@ -55,6 +58,15 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	if config.Envoy.AdminAddress == "" {
 		config.Envoy.AdminAddress = "127.0.0.1:9901"
+	}
+	if config.Envoy.AdminPort == 0 {
+		config.Envoy.AdminPort = 9901
+	}
+	if config.Envoy.MaxConnections == 0 {
+		config.Envoy.MaxConnections = 50000
+	}
+	if config.Envoy.PidFile == "" {
+		config.Envoy.PidFile = "/var/run/envoy.pid"
 	}
 	if config.Envoy.BinaryPath == "" {
 		config.Envoy.BinaryPath = "/usr/bin/envoy"

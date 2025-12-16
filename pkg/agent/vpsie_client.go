@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,10 +38,10 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) *VPSieClient {
 }
 
 // GetLoadBalancerConfig fetches the load balancer configuration from VPSie API
-func (c *VPSieClient) GetLoadBalancerConfig() (*models.LoadBalancer, error) {
+func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBalancer, error) {
 	url := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, c.loadBalancerID)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -71,7 +72,7 @@ func (c *VPSieClient) GetLoadBalancerConfig() (*models.LoadBalancer, error) {
 }
 
 // UpdateLoadBalancerStatus updates the load balancer status in VPSie
-func (c *VPSieClient) UpdateLoadBalancerStatus(status string) error {
+func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status string) error {
 	url := fmt.Sprintf("%s/loadbalancers/%s/status", c.baseURL, c.loadBalancerID)
 
 	payload := map[string]string{
@@ -82,7 +83,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(status string) error {
 		return fmt.Errorf("failed to marshal status: %w", err)
 	}
 
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -108,7 +109,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(status string) error {
 }
 
 // UpdateBackendStatus updates the status of a specific backend server
-func (c *VPSieClient) UpdateBackendStatus(backendID string, healthy bool) error {
+func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string, healthy bool) error {
 	url := fmt.Sprintf("%s/loadbalancers/%s/backends/%s/health", c.baseURL, c.loadBalancerID, backendID)
 
 	status := "unhealthy"
@@ -124,7 +125,7 @@ func (c *VPSieClient) UpdateBackendStatus(backendID string, healthy bool) error 
 		return fmt.Errorf("failed to marshal backend status: %w", err)
 	}
 
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -150,7 +151,7 @@ func (c *VPSieClient) UpdateBackendStatus(backendID string, healthy bool) error 
 }
 
 // ReportMetrics sends metrics data to VPSie API
-func (c *VPSieClient) ReportMetrics(metrics map[string]interface{}) error {
+func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]interface{}) error {
 	url := fmt.Sprintf("%s/loadbalancers/%s/metrics", c.baseURL, c.loadBalancerID)
 
 	jsonData, err := json.Marshal(metrics)
@@ -158,7 +159,7 @@ func (c *VPSieClient) ReportMetrics(metrics map[string]interface{}) error {
 		return fmt.Errorf("failed to marshal metrics: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -184,7 +185,7 @@ func (c *VPSieClient) ReportMetrics(metrics map[string]interface{}) error {
 }
 
 // SendEvent sends an event notification to VPSie API
-func (c *VPSieClient) SendEvent(eventType, message string, metadata map[string]interface{}) error {
+func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, metadata map[string]interface{}) error {
 	url := fmt.Sprintf("%s/loadbalancers/%s/events", c.baseURL, c.loadBalancerID)
 
 	payload := map[string]interface{}{
@@ -199,7 +200,7 @@ func (c *VPSieClient) SendEvent(eventType, message string, metadata map[string]i
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
