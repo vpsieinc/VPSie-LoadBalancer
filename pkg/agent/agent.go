@@ -123,41 +123,41 @@ func (a *Agent) syncConfiguration() error {
 	log.Printf("Configuration changed, applying new config (hash: %s)", configHash)
 
 	// Backup current configuration
-	if err := a.envoyManager.BackupConfig(); err != nil {
-		log.Printf("Warning: Failed to backup config: %v", err)
+	if backupErr := a.envoyManager.BackupConfig(); backupErr != nil {
+		log.Printf("Warning: Failed to backup config: %v", backupErr)
 	}
 
 	// Generate new Envoy configuration
-	envoyConfig, err := a.envoyGenerator.GenerateFullConfig(lb)
-	if err != nil {
-		return fmt.Errorf("failed to generate Envoy config: %w", err)
+	envoyConfig, genErr := a.envoyGenerator.GenerateFullConfig(lb)
+	if genErr != nil {
+		return fmt.Errorf("failed to generate Envoy config: %w", genErr)
 	}
 
 	// Apply configuration
-	if err := a.envoyManager.ApplyConfig(envoyConfig); err != nil {
-		return fmt.Errorf("failed to apply config: %w", err)
+	if applyErr := a.envoyManager.ApplyConfig(envoyConfig); applyErr != nil {
+		return fmt.Errorf("failed to apply config: %w", applyErr)
 	}
 
 	// Reload Envoy (hot restart)
 	log.Println("Reloading Envoy with new configuration...")
-	if err := a.reloadEnvoy(); err != nil {
+	if reloadErr := a.reloadEnvoy(); reloadErr != nil {
 		// Restore backup on failure
-		log.Printf("Reload failed, restoring backup: %v", err)
+		log.Printf("Reload failed, restoring backup: %v", reloadErr)
 		if restoreErr := a.envoyManager.RestoreConfig(); restoreErr != nil {
 			log.Printf("Failed to restore backup: %v", restoreErr)
 		}
-		return fmt.Errorf("failed to reload Envoy: %w", err)
+		return fmt.Errorf("failed to reload Envoy: %w", reloadErr)
 	}
 
 	// Update last config hash
 	a.lastConfigHash = configHash
 
 	// Notify VPSie of successful update
-	if err := a.vpsieClient.SendEvent("config_updated", "Configuration successfully updated", map[string]interface{}{
+	if sendErr := a.vpsieClient.SendEvent("config_updated", "Configuration successfully updated", map[string]interface{}{
 		"config_hash": configHash,
 		"epoch":       a.envoyReloader.GetCurrentEpoch(),
-	}); err != nil {
-		log.Printf("Warning: Failed to send update event: %v", err)
+	}); sendErr != nil {
+		log.Printf("Warning: Failed to send update event: %v", sendErr)
 	}
 
 	log.Println("Configuration sync completed successfully")
