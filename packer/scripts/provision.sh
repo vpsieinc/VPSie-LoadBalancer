@@ -22,7 +22,8 @@ apt-get install -y \
     net-tools \
     iptables \
     systemd \
-    dbus
+    dbus \
+    qemu-guest-agent
 
 # Configure system limits
 cat > /etc/sysctl.d/99-vpsie-lb.conf <<EOF

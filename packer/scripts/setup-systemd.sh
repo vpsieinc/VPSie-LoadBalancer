@@ -53,5 +53,6 @@ systemctl daemon-reload
 # Enable services (don't start them yet)
 systemctl enable envoy.service
 systemctl enable vpsie-lb-agent.service
+systemctl enable qemu-guest-agent.service
 
 echo "=== Systemd setup complete ==="
