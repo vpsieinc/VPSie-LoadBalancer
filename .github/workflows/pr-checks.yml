@@ -68,3 +68,48 @@ jobs:
           if [ $SIZE -gt 50000000 ]; then
             echo "Warning: Binary size exceeds 50MB"
           fi
+
+  image-build-validation:
+    name: Validate Image Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build agent binary
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          mkdir -p build
+          go build -ldflags "-s -w" -o build/vpsie-lb-agent-amd64 ./cmd/agent
+          chmod +x build/vpsie-lb-agent-amd64
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: 'latest'
+
+      - name: Initialize Packer
+        run: packer init packer/
+
+      - name: Validate Packer configuration
+        run: |
+          cd packer
+          packer validate -var="version=0.0.0-pr" debian-amd64.pkr.hcl
+
+      - name: Build image (validation only)
+        run: |
+          cd packer
+          packer build -var="version=0.0.0-pr" debian-amd64.pkr.hcl
+          echo "Image build completed successfully - artifacts not uploaded (PR validation only)"
