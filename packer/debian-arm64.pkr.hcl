@@ -2,7 +2,7 @@ source "qemu" "debian-arm64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-${var.debian_version}-arm64-netinst.iso"
   iso_checksum     = "none"
   output_directory = "output/arm64"
-  vm_name          = "vpsie-lb-debian-12-arm64-${var.version}.qcow2"
+  vm_name          = "vpsie-lb-debian-13-arm64-${var.version}.qcow2"
   format           = "qcow2"
 
   disk_size        = "10G"
@@ -65,6 +65,6 @@ build {
 
   post-processor "checksum" {
     checksum_types = ["sha256"]
-    output         = "output/arm64/vpsie-lb-debian-12-arm64-${var.version}.checksum"
+    output         = "output/arm64/vpsie-lb-debian-13-arm64-${var.version}.checksum"
   }
 }

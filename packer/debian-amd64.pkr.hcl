@@ -2,7 +2,7 @@ source "qemu" "debian-amd64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-${var.debian_version}-amd64-netinst.iso"
   iso_checksum     = "none"
   output_directory = "output/amd64"
-  vm_name          = "vpsie-lb-debian-12-amd64-${var.version}.qcow2"
+  vm_name          = "vpsie-lb-debian-13-amd64-${var.version}.qcow2"
   format           = "qcow2"
   accelerator      = "kvm"
 
@@ -57,6 +57,6 @@ build {
 
   post-processor "checksum" {
     checksum_types = ["sha256"]
-    output         = "output/amd64/vpsie-lb-debian-12-amd64-${var.version}.checksum"
+    output         = "output/amd64/vpsie-lb-debian-13-amd64-${var.version}.checksum"
   }
 }
