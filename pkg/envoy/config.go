@@ -9,9 +9,9 @@ import (
 
 // ConfigManager manages Envoy configuration files
 type ConfigManager struct {
-	validator  *Validator
-	configDir  string
-	baseDir    string // Parent of configDir for bootstrap file
+	validator *Validator
+	configDir string
+	baseDir   string // Parent of configDir for bootstrap file
 }
 
 // NewConfigManager creates a new Envoy config manager
