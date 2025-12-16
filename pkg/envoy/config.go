@@ -40,11 +40,31 @@ func (cm *ConfigManager) validatePath(path string) error {
 		return fmt.Errorf("invalid path: %w", err)
 	}
 
-	// Check if path is within configDir or baseDir (for bootstrap)
-	if !strings.HasPrefix(cleanPath, cm.configDir+string(filepath.Separator)) &&
-		!strings.HasPrefix(cleanPath, cm.baseDir+string(filepath.Separator)) &&
-		cleanPath != cm.configDir && cleanPath != cm.baseDir {
+	// Check if path is within configDir OR baseDir (for bootstrap)
+	inConfigDir := cleanPath == cm.configDir ||
+		strings.HasPrefix(cleanPath, cm.configDir+string(filepath.Separator))
+	inBaseDir := cleanPath == cm.baseDir ||
+		strings.HasPrefix(cleanPath, cm.baseDir+string(filepath.Separator))
+
+	if !inConfigDir && !inBaseDir {
 		return fmt.Errorf("path traversal attempt detected: %s not within allowed directories", cleanPath)
+	}
+
+	// Additional check: ensure no symlinks point outside allowed directories
+	evalPath, err := filepath.EvalSymlinks(cleanPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to evaluate symlinks: %w", err)
+	}
+	if err == nil && evalPath != cleanPath {
+		// Validate the resolved path too
+		inConfigDirResolved := evalPath == cm.configDir ||
+			strings.HasPrefix(evalPath, cm.configDir+string(filepath.Separator))
+		inBaseDirResolved := evalPath == cm.baseDir ||
+			strings.HasPrefix(evalPath, cm.baseDir+string(filepath.Separator))
+
+		if !inConfigDirResolved && !inBaseDirResolved {
+			return fmt.Errorf("symlink points outside allowed directories: %s -> %s", cleanPath, evalPath)
+		}
 	}
 
 	return nil

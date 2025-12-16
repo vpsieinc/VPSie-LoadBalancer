@@ -70,7 +70,11 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain response body to enable HTTP connection reuse
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
@@ -118,7 +122,11 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain response body to enable HTTP connection reuse
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
@@ -165,7 +173,11 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain response body to enable HTTP connection reuse
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
@@ -204,7 +216,11 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain response body to enable HTTP connection reuse
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
@@ -250,7 +266,11 @@ func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, 
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Drain response body to enable HTTP connection reuse
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
