@@ -5,8 +5,8 @@ import "testing"
 func TestHealthCheck_Validate(t *testing.T) {
 	tests := []struct {
 		hc      HealthCheck
-		wantErr error
 		name    string
+		wantErr error
 	}{
 		{
 			name: "valid TCP health check",
