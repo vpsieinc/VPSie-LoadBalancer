@@ -33,8 +33,21 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) *VPSieClient {
 		loadBalancerID: loadBalancerID,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        10,
+				MaxIdleConnsPerHost: 2,
+				IdleConnTimeout:     90 * time.Second,
+			},
 		},
 	}
+}
+
+// truncateErrorMessage truncates error messages to prevent sensitive information disclosure
+func truncateErrorMessage(msg string, maxLen int) string {
+	if len(msg) <= maxLen {
+		return msg
+	}
+	return msg[:maxLen] + "... (truncated)"
 }
 
 // GetLoadBalancerConfig fetches the load balancer configuration from VPSie API
@@ -60,11 +73,13 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 		if readErr != nil {
 			return nil, fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		errMsg := truncateErrorMessage(string(body), 200)
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
 	var lb models.LoadBalancer
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&lb); decodeErr != nil {
+	limitedReader := io.LimitReader(resp.Body, maxResponseSize)
+	if decodeErr := json.NewDecoder(limitedReader).Decode(&lb); decodeErr != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
@@ -102,7 +117,8 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		errMsg := truncateErrorMessage(string(body), 200)
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
 	return nil
@@ -144,7 +160,8 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		errMsg := truncateErrorMessage(string(body), 200)
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
 	return nil
@@ -178,7 +195,8 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		errMsg := truncateErrorMessage(string(body), 200)
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
 	return nil
@@ -219,7 +237,8 @@ func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, 
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		errMsg := truncateErrorMessage(string(body), 200)
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, errMsg)
 	}
 
 	return nil
