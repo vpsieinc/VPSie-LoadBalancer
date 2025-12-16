@@ -65,7 +65,7 @@ func NewAgent(cfg *Config) (*Agent, error) {
 		envoyManager:   envoyManager,
 		envoyValidator: envoyValidator,
 		envoyReloader:  envoyReloader,
-		running:        false,
+		// running defaults to false (zero value of atomic.Bool)
 	}, nil
 }
 

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -59,7 +60,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		result, err := client.GetLoadBalancerConfig()
+		result, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -77,7 +78,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		_, err := client.GetLoadBalancerConfig()
+		_, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err == nil {
 			t.Error("Expected error for 404 response")
@@ -92,7 +93,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		_, err := client.GetLoadBalancerConfig()
+		_, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err == nil {
 			t.Error("Expected error for invalid JSON")
@@ -121,7 +122,7 @@ func TestVPSieClient_UpdateLoadBalancerStatus(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		err := client.UpdateLoadBalancerStatus("active")
+		err := client.UpdateLoadBalancerStatus(context.Background(), "active")
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -136,7 +137,7 @@ func TestVPSieClient_UpdateLoadBalancerStatus(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		err := client.UpdateLoadBalancerStatus("active")
+		err := client.UpdateLoadBalancerStatus(context.Background(), "active")
 
 		if err == nil {
 			t.Error("Expected error for 500 response")
@@ -165,7 +166,7 @@ func TestVPSieClient_UpdateBackendStatus(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		err := client.UpdateBackendStatus("be-1", true)
+		err := client.UpdateBackendStatus(context.Background(), "be-1", true)
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -185,7 +186,7 @@ func TestVPSieClient_UpdateBackendStatus(t *testing.T) {
 		defer server.Close()
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
-		err := client.UpdateBackendStatus("be-1", false)
+		err := client.UpdateBackendStatus(context.Background(), "be-1", false)
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -218,7 +219,7 @@ func TestVPSieClient_ReportMetrics(t *testing.T) {
 			"connections": 100,
 			"requests":    1000,
 		}
-		err := client.ReportMetrics(metrics)
+		err := client.ReportMetrics(context.Background(), metrics)
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -251,7 +252,7 @@ func TestVPSieClient_SendEvent(t *testing.T) {
 
 		client := NewVPSieClient("test-key", server.URL, "lb-123")
 		metadata := map[string]interface{}{"version": "1.0"}
-		err := client.SendEvent("config_updated", "Config applied", metadata)
+		err := client.SendEvent(context.Background(), "config_updated", "Config applied", metadata)
 
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
