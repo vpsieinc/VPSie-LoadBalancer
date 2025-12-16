@@ -30,7 +30,7 @@ func TestConfigManager_WriteListeners(t *testing.T) {
 	}
 
 	data := []byte("listeners:\n  - name: test\n")
-	err := cm.WriteListeners(data)
+	err = cm.WriteListeners(data)
 
 	if err != nil {
 		t.Errorf("WriteListeners() error = %v", err)
@@ -55,7 +55,7 @@ func TestConfigManager_WriteClusters(t *testing.T) {
 	}
 
 	data := []byte("clusters:\n  - name: test\n")
-	err := cm.WriteClusters(data)
+	err = cm.WriteClusters(data)
 
 	if err != nil {
 		t.Errorf("WriteClusters() error = %v", err)
@@ -83,7 +83,7 @@ func TestConfigManager_WriteBootstrap(t *testing.T) {
 	}
 
 	data := []byte("node:\n  id: test\n")
-	err := cm.WriteBootstrap(data)
+	err = cm.WriteBootstrap(data)
 
 	if err != nil {
 		t.Errorf("WriteBootstrap() error = %v", err)
@@ -113,7 +113,7 @@ func TestConfigManager_ApplyConfig(t *testing.T) {
 		Clusters:  []byte("clusters:\n  - name: test\n"),
 	}
 
-	err := cm.ApplyConfig(config)
+	err = cm.ApplyConfig(config)
 	if err != nil {
 		t.Errorf("ApplyConfig() error = %v", err)
 	}
@@ -146,7 +146,7 @@ func TestConfigManager_BackupConfig(t *testing.T) {
 	os.WriteFile(filepath.Join(tmpDir, "clusters.yaml"), clustersData, 0600)
 
 	// Backup
-	err := cm.BackupConfig()
+	err = cm.BackupConfig()
 	if err != nil {
 		t.Errorf("BackupConfig() error = %v", err)
 	}
@@ -179,7 +179,7 @@ func TestConfigManager_BackupConfig_MissingFiles(t *testing.T) {
 	}
 
 	// Backup with no files should not error
-	err := cm.BackupConfig()
+	err = cm.BackupConfig()
 	if err != nil {
 		t.Errorf("BackupConfig() should not error on missing files, got: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestConfigManager_RestoreConfig(t *testing.T) {
 	os.WriteFile(filepath.Join(tmpDir, "clusters.yaml"), []byte("different"), 0600)
 
 	// Restore
-	err := cm.RestoreConfig()
+	err = cm.RestoreConfig()
 	if err != nil {
 		t.Errorf("RestoreConfig() error = %v", err)
 	}
@@ -234,7 +234,7 @@ func TestConfigManager_RestoreConfig_NoBackup(t *testing.T) {
 	}
 
 	// Restore with no backup should not error
-	err := cm.RestoreConfig()
+	err = cm.RestoreConfig()
 	if err != nil {
 		t.Errorf("RestoreConfig() should not error when no backup exists, got: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestConfigManager_AtomicWrite(t *testing.T) {
 	testPath := filepath.Join(tmpDir, "test.yaml")
 	data := []byte("test data")
 
-	err := cm.atomicWrite(testPath, data)
+	err = cm.atomicWrite(testPath, data)
 	if err != nil {
 		t.Errorf("atomicWrite() error = %v", err)
 	}
@@ -284,7 +284,7 @@ func TestConfigManager_AtomicWrite_CreatesDirectory(t *testing.T) {
 	testPath := filepath.Join(tmpDir, "subdir", "test.yaml")
 	data := []byte("test data")
 
-	err := cm.atomicWrite(testPath, data)
+	err = cm.atomicWrite(testPath, data)
 	if err != nil {
 		t.Errorf("atomicWrite() error = %v", err)
 	}
