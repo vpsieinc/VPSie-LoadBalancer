@@ -28,10 +28,10 @@ type VPSieConfig struct {
 type EnvoySettings struct {
 	ConfigPath     string `yaml:"config_path"`
 	AdminAddress   string `yaml:"admin_address"`
-	AdminPort      int    `yaml:"admin_port"`
 	BinaryPath     string `yaml:"binary_path"`
-	MaxConnections int    `yaml:"max_connections"`
 	PidFile        string `yaml:"pid_file"`
+	AdminPort      int    `yaml:"admin_port"`
+	MaxConnections int    `yaml:"max_connections"`
 }
 
 // LoggingConfig contains logging configuration

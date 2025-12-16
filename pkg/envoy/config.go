@@ -96,6 +96,7 @@ func (cm *ConfigManager) RestoreConfig() error {
 			return fmt.Errorf("failed to read backup %s: %w", file, err)
 		}
 
+		// #nosec G306 -- Config files need 0644 to allow Envoy process (different user) to read them
 		if err = os.WriteFile(dst, data, 0644); err != nil {
 			return fmt.Errorf("failed to restore %s: %w", file, err)
 		}
@@ -120,6 +121,7 @@ func (cm *ConfigManager) atomicWrite(path string, data []byte) error {
 
 	// Write to temporary file
 	tmpPath := path + ".tmp"
+	// #nosec G306 -- Config files need 0644 to allow Envoy process (different user) to read them
 	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
 	}
