@@ -1,6 +1,14 @@
 package models
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
+
+var (
+	// safeIdentifierRegex validates identifiers for template safety
+	safeIdentifierRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+)
 
 // Protocol defines the load balancer protocol type
 type Protocol string
@@ -65,9 +73,27 @@ func (lb *LoadBalancer) validateBasicFields() error {
 	if lb.ID == "" {
 		return ErrInvalidID
 	}
+	// Validate ID contains only safe characters to prevent template injection
+	if !safeIdentifierRegex.MatchString(lb.ID) {
+		return ErrInvalidID
+	}
+	// Validate ID length
+	if len(lb.ID) > 64 {
+		return ErrInvalidID
+	}
+
 	if lb.Name == "" {
 		return ErrInvalidName
 	}
+	// Validate Name contains only safe characters
+	if !safeIdentifierRegex.MatchString(lb.Name) {
+		return ErrInvalidName
+	}
+	// Validate Name length
+	if len(lb.Name) > 255 {
+		return ErrInvalidName
+	}
+
 	if lb.Port <= 0 || lb.Port > 65535 {
 		return ErrInvalidPort
 	}

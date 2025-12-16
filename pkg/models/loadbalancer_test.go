@@ -39,8 +39,8 @@ func TestLoadBalancer_Validate(t *testing.T) {
 					{ID: "be-1", Address: "10.0.0.1", Port: 8080, Enabled: true},
 				},
 				TLSConfig: &TLSConfig{
-					CertificatePath: "/etc/certs/cert.pem",
-					PrivateKeyPath:  "/etc/certs/key.pem",
+					CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+					PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 					MinVersion:      "TLSv1.2",
 				},
 				CreatedAt: time.Now(),

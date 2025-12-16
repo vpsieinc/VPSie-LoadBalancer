@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewVPSieClient(t *testing.T) {
-	client := NewVPSieClient("test-key", "https://api.test.com", "lb-123")
+	client, _ := NewVPSieClient("test-key", "https://api.test.com", "lb-123")
 
 	if client.apiKey != "test-key" {
 		t.Errorf("apiKey = %v, want test-key", client.apiKey)
@@ -59,7 +59,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		result, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err != nil {
@@ -77,7 +77,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		_, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err == nil {
@@ -92,7 +92,7 @@ func TestVPSieClient_GetLoadBalancerConfig(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		_, err := client.GetLoadBalancerConfig(context.Background())
 
 		if err == nil {
@@ -121,7 +121,7 @@ func TestVPSieClient_UpdateLoadBalancerStatus(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		err := client.UpdateLoadBalancerStatus(context.Background(), "active")
 
 		if err != nil {
@@ -136,7 +136,7 @@ func TestVPSieClient_UpdateLoadBalancerStatus(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		err := client.UpdateLoadBalancerStatus(context.Background(), "active")
 
 		if err == nil {
@@ -165,7 +165,7 @@ func TestVPSieClient_UpdateBackendStatus(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		err := client.UpdateBackendStatus(context.Background(), "be-1", true)
 
 		if err != nil {
@@ -185,7 +185,7 @@ func TestVPSieClient_UpdateBackendStatus(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		err := client.UpdateBackendStatus(context.Background(), "be-1", false)
 
 		if err != nil {
@@ -214,7 +214,7 @@ func TestVPSieClient_ReportMetrics(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		metrics := map[string]interface{}{
 			"connections": 100,
 			"requests":    1000,
@@ -250,7 +250,7 @@ func TestVPSieClient_SendEvent(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewVPSieClient("test-key", server.URL, "lb-123")
+		client, _ := NewVPSieClient("test-key", server.URL, "lb-123")
 		metadata := map[string]interface{}{"version": "1.0"}
 		err := client.SendEvent(context.Background(), "config_updated", "Config applied", metadata)
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 )
@@ -15,6 +17,7 @@ type Reloader struct {
 	configPath   string
 	pidFile      string
 	currentEpoch atomic.Int32
+	mu           sync.Mutex // Protects Reload() from concurrent execution
 }
 
 // NewReloader creates a new Envoy reloader
@@ -29,6 +32,10 @@ func NewReloader(envoyBinary, configPath, pidFile string) *Reloader {
 
 // Reload performs a hot restart of Envoy with the new configuration
 func (r *Reloader) Reload() error {
+	// Ensure only one reload happens at a time to prevent epoch desynchronization
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	// Increment epoch atomically
 	newEpoch := r.currentEpoch.Add(1)
 
@@ -41,23 +48,16 @@ func (r *Reloader) Reload() error {
 		"--parent-shutdown-time-s", "10",
 	)
 
-	// Start the new Envoy process
+	// Start the new Envoy process (detached, will continue running)
 	if err := cmd.Start(); err != nil {
 		r.currentEpoch.Add(-1) // Rollback epoch on failure
 		return fmt.Errorf("failed to start new Envoy process: %w", err)
 	}
 
-	// Wait for the process to complete initialization
-	if err := cmd.Wait(); err != nil {
-		// Check if it's a normal hot restart exit
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			// Exit code 0 means success
-			if exitErr.ExitCode() != 0 {
-				r.currentEpoch.Add(-1) // Rollback epoch on failure
-				return fmt.Errorf("Envoy process exited with error: %w", err)
-			}
-		}
-	}
+	// Release the process handle - Envoy will continue running independently
+	// The hot restart mechanism will handle the transition between old and new processes
+	//nolint:errcheck // Intentionally ignore - process will continue running even if release fails
+	cmd.Process.Release()
 
 	return nil
 }
@@ -70,9 +70,20 @@ func (r *Reloader) ReloadGraceful() error {
 		return fmt.Errorf("failed to read PID file: %w", err)
 	}
 
-	pid, err := strconv.Atoi(string(pidData))
+	// Trim whitespace and newlines to prevent injection attacks
+	pidStr := strings.TrimSpace(string(pidData))
+
+	// Validate PID format (must be positive integer)
+	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		return fmt.Errorf("invalid PID in file: %w", err)
+	}
+
+	// Validate PID range (must be positive and within reasonable bounds)
+	// Linux max PID is typically 4194304, Darwin/macOS max is 99999
+	const maxPID = 4194304
+	if pid <= 0 || pid > maxPID {
+		return fmt.Errorf("PID out of valid range: %d (must be between 1 and %d)", pid, maxPID)
 	}
 
 	// Find the process

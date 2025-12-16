@@ -1,5 +1,15 @@
 package models
 
+import (
+	"net"
+	"regexp"
+)
+
+var (
+	// hostnameRegex validates hostnames according to RFC 1123
+	hostnameRegex = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`)
+)
+
 // Backend represents a backend server
 type Backend struct {
 	ID      string `json:"id" yaml:"id"`
@@ -18,6 +28,19 @@ func (b *Backend) Validate() error {
 	if b.Address == "" {
 		return ErrInvalidBackendAddress
 	}
+
+	// Validate address is either a valid IP or hostname
+	if net.ParseIP(b.Address) == nil {
+		// Not an IP, check if valid hostname
+		if !hostnameRegex.MatchString(b.Address) {
+			return ErrInvalidBackendAddress
+		}
+		// Validate hostname length (max 253 chars per RFC 1035)
+		if len(b.Address) > 253 {
+			return ErrInvalidBackendAddress
+		}
+	}
+
 	if b.Port <= 0 || b.Port > 65535 {
 		return ErrInvalidBackendPort
 	}

@@ -34,12 +34,15 @@ func NewAgent(cfg *Config) (*Agent, error) {
 		return nil, fmt.Errorf("failed to load API key: %w", err)
 	}
 
-	// Create VPSie client
-	vpsieClient := NewVPSieClient(
+	// Create VPSie client with URL validation
+	vpsieClient, err := NewVPSieClient(
 		apiKey,
 		cfg.VPSie.APIURL,
 		cfg.VPSie.LoadBalancerID,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create VPSie client: %w", err)
+	}
 
 	// Create Envoy components
 	envoyGenerator := envoy.NewGenerator(
@@ -74,11 +77,14 @@ func NewAgent(cfg *Config) (*Agent, error) {
 
 // Start starts the agent's reconciliation loop
 func (a *Agent) Start(ctx context.Context) error {
+	// Use CompareAndSwap to ensure agent can only be started once
+	if !a.running.CompareAndSwap(false, true) {
+		return fmt.Errorf("agent is already running")
+	}
+
 	log.Printf("Starting VPSie Load Balancer Agent...")
 	log.Printf("Load Balancer ID: %s", a.config.VPSie.LoadBalancerID)
 	log.Printf("Poll Interval: %s", a.config.VPSie.PollInterval)
-
-	a.running.Store(true)
 
 	// Initial sync
 	if err := a.syncConfiguration(ctx); err != nil {
@@ -152,7 +158,25 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 		// Restore backup on failure
 		log.Printf("Reload failed, restoring backup: %v", err)
 		if restoreErr := a.envoyManager.RestoreConfig(); restoreErr != nil {
-			log.Printf("Failed to restore backup: %v", restoreErr)
+			// CRITICAL: Restore failed, system in inconsistent state
+			log.Printf("CRITICAL: Failed to restore backup: %v", restoreErr)
+			log.Printf("CRITICAL: Load balancer may be in inconsistent state")
+
+			// Notify VPSie API of critical failure
+			criticalErr := a.vpsieClient.SendEvent(ctx, "critical_failure",
+				"Config reload failed and restore failed - system may be inconsistent",
+				map[string]interface{}{
+					"reload_error":  err.Error(),
+					"restore_error": restoreErr.Error(),
+					"config_hash":   configHash,
+					"epoch":         a.envoyReloader.GetCurrentEpoch(),
+				})
+			if criticalErr != nil {
+				log.Printf("Failed to send critical failure event: %v", criticalErr)
+			}
+
+			// Return combined error with both failures
+			return fmt.Errorf("CRITICAL: reload failed (%w) and restore failed (%v)", err, restoreErr)
 		}
 		return fmt.Errorf("failed to reload Envoy: %w", err)
 	}
