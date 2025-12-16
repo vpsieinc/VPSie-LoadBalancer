@@ -13,11 +13,17 @@ type ConfigManager struct {
 }
 
 // NewConfigManager creates a new Envoy config manager
-func NewConfigManager(configDir string, validator *Validator) *ConfigManager {
-	return &ConfigManager{
-		configDir: configDir,
-		validator: validator,
+func NewConfigManager(configDir string, validator *Validator) (*ConfigManager, error) {
+	// Validate and sanitize config directory path
+	cleanConfigDir, err := filepath.Abs(filepath.Clean(configDir))
+	if err != nil {
+		return nil, fmt.Errorf("invalid config directory: %w", err)
 	}
+
+	return &ConfigManager{
+		configDir: cleanConfigDir,
+		validator: validator,
+	}, nil
 }
 
 // WriteListeners writes the listeners configuration to file

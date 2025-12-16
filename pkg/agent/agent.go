@@ -51,7 +51,10 @@ func NewAgent(cfg *Config) (*Agent, error) {
 	)
 
 	envoyValidator := envoy.NewValidator(cfg.Envoy.BinaryPath)
-	envoyManager := envoy.NewConfigManager(cfg.Envoy.ConfigPath, envoyValidator)
+	envoyManager, err := envoy.NewConfigManager(cfg.Envoy.ConfigPath, envoyValidator)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create config manager: %w", err)
+	}
 	envoyReloader := envoy.NewReloader(
 		cfg.Envoy.BinaryPath,
 		cfg.Envoy.ConfigPath+"/bootstrap.yaml",

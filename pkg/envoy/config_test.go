@@ -8,7 +8,10 @@ import (
 
 func TestNewConfigManager(t *testing.T) {
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager("/etc/envoy", validator)
+	cm, err := NewConfigManager("/etc/envoy", validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	if cm.configDir != "/etc/envoy" {
 		t.Errorf("configDir = %v, want /etc/envoy", cm.configDir)
@@ -21,10 +24,13 @@ func TestNewConfigManager(t *testing.T) {
 func TestConfigManager_WriteListeners(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	data := []byte("listeners:\n  - name: test\n")
-	err := cm.WriteListeners(data)
+	err = cm.WriteListeners(data)
 
 	if err != nil {
 		t.Errorf("WriteListeners() error = %v", err)
@@ -43,10 +49,13 @@ func TestConfigManager_WriteListeners(t *testing.T) {
 func TestConfigManager_WriteClusters(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	data := []byte("clusters:\n  - name: test\n")
-	err := cm.WriteClusters(data)
+	err = cm.WriteClusters(data)
 
 	if err != nil {
 		t.Errorf("WriteClusters() error = %v", err)
@@ -68,10 +77,13 @@ func TestConfigManager_WriteBootstrap(t *testing.T) {
 	os.MkdirAll(configDir, 0755)
 
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(configDir, validator)
+	cm, err := NewConfigManager(configDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	data := []byte("node:\n  id: test\n")
-	err := cm.WriteBootstrap(data)
+	err = cm.WriteBootstrap(data)
 
 	if err != nil {
 		t.Errorf("WriteBootstrap() error = %v", err)
@@ -91,14 +103,17 @@ func TestConfigManager_WriteBootstrap(t *testing.T) {
 func TestConfigManager_ApplyConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	config := &EnvoyConfig{
 		Listeners: []byte("listeners:\n  - name: test\n"),
 		Clusters:  []byte("clusters:\n  - name: test\n"),
 	}
 
-	err := cm.ApplyConfig(config)
+	err = cm.ApplyConfig(config)
 	if err != nil {
 		t.Errorf("ApplyConfig() error = %v", err)
 	}
@@ -118,7 +133,10 @@ func TestConfigManager_ApplyConfig(t *testing.T) {
 func TestConfigManager_BackupConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	// Create initial config files
 	listenersData := []byte("listeners:\n  - name: test\n")
@@ -128,7 +146,7 @@ func TestConfigManager_BackupConfig(t *testing.T) {
 	os.WriteFile(filepath.Join(tmpDir, "clusters.yaml"), clustersData, 0600)
 
 	// Backup
-	err := cm.BackupConfig()
+	err = cm.BackupConfig()
 	if err != nil {
 		t.Errorf("BackupConfig() error = %v", err)
 	}
@@ -155,10 +173,13 @@ func TestConfigManager_BackupConfig(t *testing.T) {
 func TestConfigManager_BackupConfig_MissingFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	// Backup with no files should not error
-	err := cm.BackupConfig()
+	err = cm.BackupConfig()
 	if err != nil {
 		t.Errorf("BackupConfig() should not error on missing files, got: %v", err)
 	}
@@ -167,7 +188,10 @@ func TestConfigManager_BackupConfig_MissingFiles(t *testing.T) {
 func TestConfigManager_RestoreConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	// Create backup files
 	backupDir := filepath.Join(tmpDir, ".backup")
@@ -184,7 +208,7 @@ func TestConfigManager_RestoreConfig(t *testing.T) {
 	os.WriteFile(filepath.Join(tmpDir, "clusters.yaml"), []byte("different"), 0600)
 
 	// Restore
-	err := cm.RestoreConfig()
+	err = cm.RestoreConfig()
 	if err != nil {
 		t.Errorf("RestoreConfig() error = %v", err)
 	}
@@ -204,10 +228,13 @@ func TestConfigManager_RestoreConfig(t *testing.T) {
 func TestConfigManager_RestoreConfig_NoBackup(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	// Restore with no backup should not error
-	err := cm.RestoreConfig()
+	err = cm.RestoreConfig()
 	if err != nil {
 		t.Errorf("RestoreConfig() should not error when no backup exists, got: %v", err)
 	}
@@ -216,12 +243,15 @@ func TestConfigManager_RestoreConfig_NoBackup(t *testing.T) {
 func TestConfigManager_AtomicWrite(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	testPath := filepath.Join(tmpDir, "test.yaml")
 	data := []byte("test data")
 
-	err := cm.atomicWrite(testPath, data)
+	err = cm.atomicWrite(testPath, data)
 	if err != nil {
 		t.Errorf("atomicWrite() error = %v", err)
 	}
@@ -245,13 +275,16 @@ func TestConfigManager_AtomicWrite(t *testing.T) {
 func TestConfigManager_AtomicWrite_CreatesDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	validator := NewValidator("/usr/bin/envoy")
-	cm := NewConfigManager(tmpDir, validator)
+	cm, err := NewConfigManager(tmpDir, validator)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	// Write to a subdirectory that doesn't exist
 	testPath := filepath.Join(tmpDir, "subdir", "test.yaml")
 	data := []byte("test data")
 
-	err := cm.atomicWrite(testPath, data)
+	err = cm.atomicWrite(testPath, data)
 	if err != nil {
 		t.Errorf("atomicWrite() error = %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 )
 
@@ -13,36 +14,36 @@ type Reloader struct {
 	envoyBinary  string
 	configPath   string
 	pidFile      string
-	currentEpoch int
+	currentEpoch atomic.Int32
 }
 
 // NewReloader creates a new Envoy reloader
 func NewReloader(envoyBinary, configPath, pidFile string) *Reloader {
 	return &Reloader{
-		envoyBinary:  envoyBinary,
-		configPath:   configPath,
-		pidFile:      pidFile,
-		currentEpoch: 0,
+		envoyBinary: envoyBinary,
+		configPath:  configPath,
+		pidFile:     pidFile,
+		// currentEpoch defaults to 0 (zero value of atomic.Int32)
 	}
 }
 
 // Reload performs a hot restart of Envoy with the new configuration
 func (r *Reloader) Reload() error {
-	// Increment epoch
-	r.currentEpoch++
+	// Increment epoch atomically
+	newEpoch := r.currentEpoch.Add(1)
 
 	// Build command for hot restart
 	// #nosec G204 -- envoyBinary is set at initialization, not from user input
 	cmd := exec.Command(
 		r.envoyBinary,
 		"-c", r.configPath,
-		"--restart-epoch", strconv.Itoa(r.currentEpoch),
+		"--restart-epoch", strconv.Itoa(int(newEpoch)),
 		"--parent-shutdown-time-s", "10",
 	)
 
 	// Start the new Envoy process
 	if err := cmd.Start(); err != nil {
-		r.currentEpoch-- // Rollback epoch on failure
+		r.currentEpoch.Add(-1) // Rollback epoch on failure
 		return fmt.Errorf("failed to start new Envoy process: %w", err)
 	}
 
@@ -52,7 +53,7 @@ func (r *Reloader) Reload() error {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// Exit code 0 means success
 			if exitErr.ExitCode() != 0 {
-				r.currentEpoch-- // Rollback epoch on failure
+				r.currentEpoch.Add(-1) // Rollback epoch on failure
 				return fmt.Errorf("Envoy process exited with error: %w", err)
 			}
 		}
@@ -90,5 +91,5 @@ func (r *Reloader) ReloadGraceful() error {
 
 // GetCurrentEpoch returns the current restart epoch
 func (r *Reloader) GetCurrentEpoch() int {
-	return r.currentEpoch
+	return int(r.currentEpoch.Load())
 }
