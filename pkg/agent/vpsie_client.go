@@ -18,6 +18,11 @@ import (
 const (
 	// maxResponseSize limits API response body size to prevent DoS attacks
 	maxResponseSize = 10 * 1024 * 1024 // 10MB
+
+	// httpsScheme is the HTTPS URL scheme
+	httpsScheme = "https"
+	// httpScheme is the HTTP URL scheme
+	httpScheme = "http"
 )
 
 // VPSieClient handles communication with the VPSie API
@@ -57,13 +62,42 @@ func isPrivateOrLocalhost(host string) bool {
 	}
 
 	for _, cidr := range privateRanges {
-		_, ipNet, _ := net.ParseCIDR(cidr)
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			// This should never happen with hardcoded CIDRs, but check anyway
+			continue
+		}
 		if ipNet.Contains(ip) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// validateHostname checks if the hostname is allowed
+func validateHostname(hostname string) error {
+	// Allow test URLs (containing "test" or "127.0.0.1") for testing
+	isTestURL := strings.Contains(hostname, "test") || strings.Contains(hostname, "127.0.0.1") || strings.Contains(hostname, "localhost")
+
+	// Allow test servers (for unit tests)
+	if isTestURL {
+		return nil
+	}
+
+	// For production URLs, check against whitelist and reject private IPs
+	if isPrivateOrLocalhost(hostname) {
+		return fmt.Errorf("base URL must not be localhost or private IP address")
+	}
+
+	allowedDomains := []string{"api.vpsie.com", "vpsie.com"}
+	for _, domain := range allowedDomains {
+		if hostname == domain || strings.HasSuffix(hostname, "."+domain) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("base URL domain not in allowed list: %s", hostname)
 }
 
 // NewVPSieClient creates a new VPSie API client with URL validation
@@ -75,42 +109,13 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) (*VPSieClient, error
 	}
 
 	// Only allow HTTPS (or HTTP for local development)
-	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+	if parsedURL.Scheme != httpsScheme && parsedURL.Scheme != httpScheme {
 		return nil, fmt.Errorf("base URL must use HTTP or HTTPS scheme")
 	}
 
-	// Production should use HTTPS
-	if parsedURL.Scheme != "https" {
-		// Log warning for non-HTTPS in production
-		// In production deployments, this should be an error
-	}
-
 	// Validate hostname matches expected VPSie domains (whitelist)
-	// Allow test URLs (containing "test" or "127.0.0.1") for testing
-	allowedDomains := []string{"api.vpsie.com", "vpsie.com"}
-	hostname := parsedURL.Hostname()
-	allowed := false
-	isTestURL := strings.Contains(hostname, "test") || strings.Contains(hostname, "127.0.0.1") || strings.Contains(hostname, "localhost")
-
-	// Allow test servers (for unit tests)
-	if isTestURL {
-		allowed = true
-	} else {
-		// For production URLs, check against whitelist and reject private IPs
-		if isPrivateOrLocalhost(hostname) {
-			return nil, fmt.Errorf("base URL must not be localhost or private IP address")
-		}
-
-		for _, domain := range allowedDomains {
-			if hostname == domain || strings.HasSuffix(hostname, "."+domain) {
-				allowed = true
-				break
-			}
-		}
-	}
-
-	if !allowed {
-		return nil, fmt.Errorf("base URL domain not in allowed list: %s", hostname)
+	if err := validateHostname(parsedURL.Hostname()); err != nil {
+		return nil, err
 	}
 
 	return &VPSieClient{
@@ -134,7 +139,7 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) (*VPSieClient, error
 					return fmt.Errorf("redirect to different host not allowed: %s -> %s", via[0].URL.Host, req.URL.Host)
 				}
 				// Ensure redirect maintains HTTPS if original was HTTPS
-				if via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+				if via[0].URL.Scheme == httpsScheme && req.URL.Scheme != httpsScheme {
 					return fmt.Errorf("redirect from HTTPS to HTTP not allowed")
 				}
 				return nil
@@ -173,6 +178,7 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 	}
 	defer func() {
 		// Drain response body to enable HTTP connection reuse
+		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 	}()
@@ -225,6 +231,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 	}
 	defer func() {
 		// Drain response body to enable HTTP connection reuse
+		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 	}()
@@ -276,6 +283,7 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 	}
 	defer func() {
 		// Drain response body to enable HTTP connection reuse
+		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 	}()
@@ -319,6 +327,7 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 	}
 	defer func() {
 		// Drain response body to enable HTTP connection reuse
+		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 	}()
@@ -369,6 +378,7 @@ func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, 
 	}
 	defer func() {
 		// Drain response body to enable HTTP connection reuse
+		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
 	}()
