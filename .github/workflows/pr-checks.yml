@@ -76,35 +76,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Build agent binary
-        env:
-          GOOS: linux
-          GOARCH: amd64
+      - name: Validate build script syntax
         run: |
-          mkdir -p build
-          go build -ldflags "-s -w" -o build/vpsie-lb-agent-amd64 ./cmd/agent
-          chmod +x build/vpsie-lb-agent-amd64
+          bash -n packer/scripts/build-cloud-image.sh
+          echo "Build script syntax is valid"
 
-      - name: Install dependencies
+      - name: Verify Debian cloud images are accessible
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 qemu-utils
+          # Check amd64 image URL (follow redirects)
+          curl -sIL "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2" | grep -q "200"
+          echo "amd64 cloud image is accessible"
 
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@main
-        with:
-          version: 'latest'
-
-      - name: Initialize Packer
-        run: packer init packer/
-
-      - name: Validate Packer configuration
-        run: |
-          cd packer
-          packer validate -var="version=0.0.0-pr" .
-          echo "Packer configuration is valid"
+          # Check arm64 image URL (follow redirects)
+          curl -sIL "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-arm64-daily.qcow2" | grep -q "200"
+          echo "arm64 cloud image is accessible"
