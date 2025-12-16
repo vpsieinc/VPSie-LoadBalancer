@@ -61,8 +61,8 @@ func (g *Generator) GenerateBootstrap() ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute bootstrap template: %w", err)
+	if execErr := tmpl.Execute(&buf, data); execErr != nil {
+		return nil, fmt.Errorf("failed to execute bootstrap template: %w", execErr)
 	}
 
 	return buf.Bytes(), nil
@@ -133,8 +133,8 @@ func (g *Generator) GenerateListener(lb *models.LoadBalancer) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute listener template: %w", err)
+	if execErr := tmpl.Execute(&buf, data); execErr != nil {
+		return nil, fmt.Errorf("failed to execute listener template: %w", execErr)
 	}
 
 	return buf.Bytes(), nil

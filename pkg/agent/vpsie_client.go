@@ -13,10 +13,10 @@ import (
 
 // VPSieClient handles communication with the VPSie API
 type VPSieClient struct {
+	httpClient     *http.Client
 	apiKey         string
 	baseURL        string
 	loadBalancerID string
-	httpClient     *http.Client
 }
 
 // NewVPSieClient creates a new VPSie API client
