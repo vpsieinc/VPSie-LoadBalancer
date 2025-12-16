@@ -82,23 +82,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 qemu-utils
-
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@main
-        with:
-          version: 'latest'
-
-      - name: Initialize Packer
-        run: packer init packer/
+          sudo apt-get install -y qemu-utils libguestfs-tools
 
       - name: Make agent executable
         run: chmod +x build/vpsie-lb-agent-amd64
 
       - name: Build amd64 image
         run: |
-          cd packer
-          packer build -only=qemu.debian-amd64 -var="version=${VERSION}" .
+          chmod +x packer/scripts/build-cloud-image.sh
+          sudo packer/scripts/build-cloud-image.sh amd64 ${VERSION}
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
@@ -138,23 +130,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-aarch64 qemu-utils qemu-efi-aarch64
-
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@main
-        with:
-          version: 'latest'
-
-      - name: Initialize Packer
-        run: packer init packer/
+          sudo apt-get install -y qemu-utils libguestfs-tools
 
       - name: Make agent executable
         run: chmod +x build/vpsie-lb-agent-arm64
 
       - name: Build arm64 image
         run: |
-          cd packer
-          packer build -only=qemu.debian-arm64 -var="version=${VERSION}" .
+          chmod +x packer/scripts/build-cloud-image.sh
+          sudo packer/scripts/build-cloud-image.sh arm64 ${VERSION}
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
