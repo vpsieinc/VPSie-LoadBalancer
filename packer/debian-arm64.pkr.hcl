@@ -1,25 +1,6 @@
-packer {
-  required_plugins {
-    qemu = {
-      version = ">= 1.0.0"
-      source  = "github.com/hashicorp/qemu"
-    }
-  }
-}
-
-variable "version" {
-  type    = string
-  default = "1.0.0"
-}
-
-variable "debian_version" {
-  type    = string
-  default = "12.2.0"
-}
-
 source "qemu" "debian-arm64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-${var.debian_version}-arm64-netinst.iso"
-  iso_checksum     = "file:https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/SHA256SUMS"
+  iso_checksum     = "none"
   output_directory = "output/arm64"
   vm_name          = "vpsie-lb-debian-12-arm64-${var.version}.qcow2"
   format           = "qcow2"

@@ -13,10 +13,10 @@ import (
 
 // VPSieClient handles communication with the VPSie API
 type VPSieClient struct {
+	httpClient     *http.Client
 	apiKey         string
 	baseURL        string
 	loadBalancerID string
-	httpClient     *http.Client
 }
 
 // NewVPSieClient creates a new VPSie API client
@@ -50,13 +50,16 @@ func (c *VPSieClient) GetLoadBalancerConfig() (*models.LoadBalancer, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var lb models.LoadBalancer
-	if err := json.NewDecoder(resp.Body).Decode(&lb); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&lb); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	return &lb, nil
@@ -89,7 +92,10 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(status string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -128,7 +134,10 @@ func (c *VPSieClient) UpdateBackendStatus(backendID string, healthy bool) error 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -159,7 +168,10 @@ func (c *VPSieClient) ReportMetrics(metrics map[string]interface{}) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -197,7 +209,10 @@ func (c *VPSieClient) SendEvent(eventType, message string, metadata map[string]i
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 

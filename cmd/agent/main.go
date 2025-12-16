@@ -54,9 +54,9 @@ func main() {
 		cancel()
 		agentInstance.Stop()
 
-	case err := <-errChan:
-		if err != nil {
-			log.Fatalf("Agent error: %v", err)
+	case agentErr := <-errChan:
+		if agentErr != nil {
+			log.Fatalf("Agent error: %v", agentErr)
 		}
 	}
 

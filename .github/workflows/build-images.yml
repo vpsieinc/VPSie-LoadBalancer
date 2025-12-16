@@ -1,0 +1,192 @@
+name: Build Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag for the image'
+        required: true
+        default: '1.0.0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-agent:
+    name: Build Agent Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          fi
+
+      - name: Build agent
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p build
+          go build -ldflags "-s -w -X main.Version=${VERSION}" \
+            -o build/vpsie-lb-agent-${{ matrix.goarch }} \
+            ./cmd/agent
+
+      - name: Upload agent binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-binaries
+          path: build/vpsie-lb-agent-${{ matrix.goarch }}
+
+  build-qcow2-amd64:
+    name: Build qcow2 Image (amd64)
+    runs-on: ubuntu-latest
+    needs: build-agent
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download agent binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-binaries
+          path: build/
+
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: 'latest'
+
+      - name: Initialize Packer
+        run: packer init packer/
+
+      - name: Make agent executable
+        run: chmod +x build/vpsie-lb-agent-amd64
+
+      - name: Build amd64 image
+        run: |
+          cd packer
+          packer build -var="version=${VERSION}" debian-amd64.pkr.hcl
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcow2-images
+          path: packer/output/amd64/*.qcow2
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: packer/output/amd64/*.checksum
+
+  build-qcow2-arm64:
+    name: Build qcow2 Image (arm64)
+    runs-on: ubuntu-latest
+    needs: build-agent
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download agent binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-binaries
+          path: build/
+
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-aarch64 qemu-utils qemu-efi-aarch64
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: 'latest'
+
+      - name: Initialize Packer
+        run: packer init packer/
+
+      - name: Make agent executable
+        run: chmod +x build/vpsie-lb-agent-arm64
+
+      - name: Build arm64 image
+        run: |
+          cd packer
+          packer build -var="version=${VERSION}" debian-arm64.pkr.hcl
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcow2-images
+          path: packer/output/arm64/*.qcow2
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: packer/output/arm64/*.checksum
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-qcow2-amd64, build-qcow2-arm64]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            qcow2-images/*.qcow2
+            checksums/*.checksum
+            agent-binaries/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,8 +8,8 @@ import (
 
 // ConfigManager manages Envoy configuration files
 type ConfigManager struct {
-	configDir string
 	validator *Validator
+	configDir string
 }
 
 // NewConfigManager creates a new Envoy config manager
@@ -71,7 +71,7 @@ func (cm *ConfigManager) BackupConfig() error {
 			return fmt.Errorf("failed to read %s: %w", file, err)
 		}
 
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		if err = os.WriteFile(dst, data, 0600); err != nil {
 			return fmt.Errorf("failed to backup %s: %w", file, err)
 		}
 	}
@@ -96,7 +96,7 @@ func (cm *ConfigManager) RestoreConfig() error {
 			return fmt.Errorf("failed to read backup %s: %w", file, err)
 		}
 
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		if err = os.WriteFile(dst, data, 0600); err != nil {
 			return fmt.Errorf("failed to restore %s: %w", file, err)
 		}
 	}
@@ -120,7 +120,7 @@ func (cm *ConfigManager) atomicWrite(path string, data []byte) error {
 
 	// Write to temporary file
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
 	}
 

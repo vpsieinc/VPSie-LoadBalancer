@@ -23,9 +23,9 @@ type Agent struct {
 }
 
 // NewAgent creates a new agent instance
-func NewAgent(config *Config) (*Agent, error) {
+func NewAgent(cfg *Config) (*Agent, error) {
 	// Load API key
-	apiKey, err := config.VPSie.LoadAPIKey()
+	apiKey, err := cfg.VPSie.LoadAPIKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load API key: %w", err)
 	}
@@ -33,29 +33,29 @@ func NewAgent(config *Config) (*Agent, error) {
 	// Create VPSie client
 	vpsieClient := NewVPSieClient(
 		apiKey,
-		config.VPSie.APIURL,
-		config.VPSie.LoadBalancerID,
+		cfg.VPSie.APIURL,
+		cfg.VPSie.LoadBalancerID,
 	)
 
 	// Create Envoy components
 	envoyGenerator := envoy.NewGenerator(
-		config.VPSie.LoadBalancerID,
-		config.Envoy.ConfigPath,
-		config.Envoy.AdminAddress,
-		9901, // default admin port
+		cfg.VPSie.LoadBalancerID,
+		cfg.Envoy.ConfigPath,
+		cfg.Envoy.AdminAddress,
+		9901,  // default admin port
 		50000, // max connections
 	)
 
-	envoyValidator := envoy.NewValidator(config.Envoy.BinaryPath)
-	envoyManager := envoy.NewConfigManager(config.Envoy.ConfigPath, envoyValidator)
+	envoyValidator := envoy.NewValidator(cfg.Envoy.BinaryPath)
+	envoyManager := envoy.NewConfigManager(cfg.Envoy.ConfigPath, envoyValidator)
 	envoyReloader := envoy.NewReloader(
-		config.Envoy.BinaryPath,
-		config.Envoy.ConfigPath+"/bootstrap.yaml",
+		cfg.Envoy.BinaryPath,
+		cfg.Envoy.ConfigPath+"/bootstrap.yaml",
 		"/var/run/envoy.pid",
 	)
 
 	return &Agent{
-		config:         config,
+		config:         cfg,
 		vpsieClient:    vpsieClient,
 		envoyGenerator: envoyGenerator,
 		envoyManager:   envoyManager,
@@ -109,7 +109,7 @@ func (a *Agent) syncConfiguration() error {
 	}
 
 	// Validate configuration
-	if err := lb.Validate(); err != nil {
+	if err = lb.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration from VPSie: %w", err)
 	}
 
@@ -123,24 +123,25 @@ func (a *Agent) syncConfiguration() error {
 	log.Printf("Configuration changed, applying new config (hash: %s)", configHash)
 
 	// Backup current configuration
-	if err := a.envoyManager.BackupConfig(); err != nil {
+	if err = a.envoyManager.BackupConfig(); err != nil {
 		log.Printf("Warning: Failed to backup config: %v", err)
 	}
 
 	// Generate new Envoy configuration
-	envoyConfig, err := a.envoyGenerator.GenerateFullConfig(lb)
+	var envoyConfig *envoy.EnvoyConfig
+	envoyConfig, err = a.envoyGenerator.GenerateFullConfig(lb)
 	if err != nil {
 		return fmt.Errorf("failed to generate Envoy config: %w", err)
 	}
 
 	// Apply configuration
-	if err := a.envoyManager.ApplyConfig(envoyConfig); err != nil {
+	if err = a.envoyManager.ApplyConfig(envoyConfig); err != nil {
 		return fmt.Errorf("failed to apply config: %w", err)
 	}
 
 	// Reload Envoy (hot restart)
 	log.Println("Reloading Envoy with new configuration...")
-	if err := a.reloadEnvoy(); err != nil {
+	if err = a.reloadEnvoy(); err != nil {
 		// Restore backup on failure
 		log.Printf("Reload failed, restoring backup: %v", err)
 		if restoreErr := a.envoyManager.RestoreConfig(); restoreErr != nil {
@@ -153,7 +154,7 @@ func (a *Agent) syncConfiguration() error {
 	a.lastConfigHash = configHash
 
 	// Notify VPSie of successful update
-	if err := a.vpsieClient.SendEvent("config_updated", "Configuration successfully updated", map[string]interface{}{
+	if err = a.vpsieClient.SendEvent("config_updated", "Configuration successfully updated", map[string]interface{}{
 		"config_hash": configHash,
 		"epoch":       a.envoyReloader.GetCurrentEpoch(),
 	}); err != nil {

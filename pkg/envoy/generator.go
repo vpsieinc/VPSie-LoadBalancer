@@ -61,7 +61,7 @@ func (g *Generator) GenerateBootstrap() ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err = tmpl.Execute(&buf, data); err != nil {
 		return nil, fmt.Errorf("failed to execute bootstrap template: %w", err)
 	}
 
@@ -133,7 +133,7 @@ func (g *Generator) GenerateListener(lb *models.LoadBalancer) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err = tmpl.Execute(&buf, data); err != nil {
 		return nil, fmt.Errorf("failed to execute listener template: %w", err)
 	}
 
@@ -177,11 +177,11 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 	// Add health check config
 	if lb.HealthCheck != nil {
 		hcData := map[string]interface{}{
-			"Type":                string(lb.HealthCheck.Type),
-			"Timeout":             lb.HealthCheck.Timeout,
-			"Interval":            lb.HealthCheck.Interval,
-			"UnhealthyThreshold":  lb.HealthCheck.UnhealthyThreshold,
-			"HealthyThreshold":    lb.HealthCheck.HealthyThreshold,
+			"Type":               string(lb.HealthCheck.Type),
+			"Timeout":            lb.HealthCheck.Timeout,
+			"Interval":           lb.HealthCheck.Interval,
+			"UnhealthyThreshold": lb.HealthCheck.UnhealthyThreshold,
+			"HealthyThreshold":   lb.HealthCheck.HealthyThreshold,
 		}
 
 		if lb.HealthCheck.IsHTTPBased() {
@@ -203,7 +203,7 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err = tmpl.Execute(&buf, data); err != nil {
 		return nil, fmt.Errorf("failed to execute cluster template: %w", err)
 	}
 
@@ -231,10 +231,10 @@ func (g *Generator) GenerateFullConfig(lb *models.LoadBalancer) (*EnvoyConfig, e
 
 	// Parse YAML to ensure it's valid
 	var listenerData, clusterData interface{}
-	if err := yaml.Unmarshal(listenerYAML, &listenerData); err != nil {
+	if err = yaml.Unmarshal(listenerYAML, &listenerData); err != nil {
 		return nil, fmt.Errorf("invalid listener YAML: %w", err)
 	}
-	if err := yaml.Unmarshal(clusterYAML, &clusterData); err != nil {
+	if err = yaml.Unmarshal(clusterYAML, &clusterData); err != nil {
 		return nil, fmt.Errorf("invalid cluster YAML: %w", err)
 	}
 

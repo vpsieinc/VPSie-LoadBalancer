@@ -11,9 +11,9 @@ import (
 
 // Config represents the agent configuration
 type Config struct {
-	VPSie  VPSieConfig  `yaml:"vpsie"`
-	Envoy  EnvoyConfig  `yaml:"envoy"`
+	Envoy   EnvoySettings `yaml:"envoy"`
 	Logging LoggingConfig `yaml:"logging"`
+	VPSie   VPSieConfig   `yaml:"vpsie"`
 }
 
 // VPSieConfig contains VPSie API configuration
@@ -24,8 +24,8 @@ type VPSieConfig struct {
 	PollInterval   time.Duration `yaml:"poll_interval"`
 }
 
-// EnvoyConfig contains Envoy-specific configuration
-type EnvoyConfig struct {
+// EnvoySettings contains Envoy-specific configuration
+type EnvoySettings struct {
 	ConfigPath   string `yaml:"config_path"`
 	AdminAddress string `yaml:"admin_address"`
 	BinaryPath   string `yaml:"binary_path"`
@@ -45,7 +45,7 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	if err = yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 

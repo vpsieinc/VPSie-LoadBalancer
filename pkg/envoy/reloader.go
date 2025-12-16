@@ -10,10 +10,10 @@ import (
 
 // Reloader handles hot reloading of Envoy configuration
 type Reloader struct {
-	envoyBinary    string
-	configPath     string
-	pidFile        string
-	currentEpoch   int
+	envoyBinary  string
+	configPath   string
+	pidFile      string
+	currentEpoch int
 }
 
 // NewReloader creates a new Envoy reloader
@@ -32,6 +32,7 @@ func (r *Reloader) Reload() error {
 	r.currentEpoch++
 
 	// Build command for hot restart
+	// #nosec G204 -- envoyBinary is set at initialization, not from user input
 	cmd := exec.Command(
 		r.envoyBinary,
 		"-c", r.configPath,
@@ -80,7 +81,7 @@ func (r *Reloader) ReloadGraceful() error {
 	}
 
 	// Send SIGHUP signal
-	if err := process.Signal(syscall.SIGHUP); err != nil {
+	if err = process.Signal(syscall.SIGHUP); err != nil {
 		return fmt.Errorf("failed to send SIGHUP to Envoy: %w", err)
 	}
 
