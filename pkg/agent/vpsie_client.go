@@ -11,6 +11,11 @@ import (
 	"github.com/vpsie/vpsie-loadbalancer/pkg/models"
 )
 
+const (
+	// maxResponseSize limits API response body size to prevent DoS attacks
+	maxResponseSize = 10 * 1024 * 1024 // 10MB
+)
+
 // VPSieClient handles communication with the VPSie API
 type VPSieClient struct {
 	httpClient     *http.Client
@@ -50,7 +55,7 @@ func (c *VPSieClient) GetLoadBalancerConfig() (*models.LoadBalancer, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 		if readErr != nil {
 			return nil, fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
@@ -92,7 +97,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(status string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, readErr := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
@@ -134,7 +139,7 @@ func (c *VPSieClient) UpdateBackendStatus(backendID string, healthy bool) error 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, readErr := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
@@ -168,7 +173,7 @@ func (c *VPSieClient) ReportMetrics(metrics map[string]interface{}) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, readErr := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
@@ -209,7 +214,7 @@ func (c *VPSieClient) SendEvent(eventType, message string, metadata map[string]i
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, readErr := io.ReadAll(resp.Body)
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 		if readErr != nil {
 			return fmt.Errorf("API returned status %d (failed to read response body: %w)", resp.StatusCode, readErr)
 		}
