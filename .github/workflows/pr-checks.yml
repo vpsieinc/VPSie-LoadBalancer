@@ -106,10 +106,10 @@ jobs:
       - name: Validate Packer configuration
         run: |
           cd packer
-          packer validate -var="version=0.0.0-pr" debian-amd64.pkr.hcl
+          packer validate -var="version=0.0.0-pr" .
 
       - name: Build image (validation only)
         run: |
           cd packer
-          packer build -var="version=0.0.0-pr" debian-amd64.pkr.hcl
+          packer build -only=qemu.debian-amd64 -var="version=0.0.0-pr" .
           echo "Image build completed successfully - artifacts not uploaded (PR validation only)"
