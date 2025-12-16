@@ -34,12 +34,15 @@ func NewAgent(cfg *Config) (*Agent, error) {
 		return nil, fmt.Errorf("failed to load API key: %w", err)
 	}
 
-	// Create VPSie client
-	vpsieClient := NewVPSieClient(
+	// Create VPSie client with URL validation
+	vpsieClient, err := NewVPSieClient(
 		apiKey,
 		cfg.VPSie.APIURL,
 		cfg.VPSie.LoadBalancerID,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create VPSie client: %w", err)
+	}
 
 	// Create Envoy components
 	envoyGenerator := envoy.NewGenerator(

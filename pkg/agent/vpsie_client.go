@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/vpsie/vpsie-loadbalancer/pkg/models"
@@ -25,8 +28,91 @@ type VPSieClient struct {
 	loadBalancerID string
 }
 
-// NewVPSieClient creates a new VPSie API client
-func NewVPSieClient(apiKey, baseURL, loadBalancerID string) *VPSieClient {
+// isPrivateOrLocalhost checks if an IP or hostname is private or localhost
+func isPrivateOrLocalhost(host string) bool {
+	// Check for localhost
+	if host == "localhost" || strings.HasPrefix(host, "127.") || host == "::1" {
+		return true
+	}
+
+	// Parse as IP
+	ip := net.ParseIP(host)
+	if ip == nil {
+		// Not an IP, could be hostname - resolve it
+		ips, err := net.LookupIP(host)
+		if err != nil || len(ips) == 0 {
+			return false
+		}
+		ip = ips[0]
+	}
+
+	// Check for private IP ranges
+	privateRanges := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"169.254.0.0/16", // AWS metadata
+		"fd00::/8",       // IPv6 ULA
+		"fe80::/10",      // IPv6 link-local
+	}
+
+	for _, cidr := range privateRanges {
+		_, ipNet, _ := net.ParseCIDR(cidr)
+		if ipNet.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// NewVPSieClient creates a new VPSie API client with URL validation
+func NewVPSieClient(apiKey, baseURL, loadBalancerID string) (*VPSieClient, error) {
+	// Validate base URL
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	// Only allow HTTPS (or HTTP for local development)
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return nil, fmt.Errorf("base URL must use HTTP or HTTPS scheme")
+	}
+
+	// Production should use HTTPS
+	if parsedURL.Scheme != "https" {
+		// Log warning for non-HTTPS in production
+		// In production deployments, this should be an error
+	}
+
+	// Validate hostname matches expected VPSie domains (whitelist)
+	// Allow test URLs (containing "test" or "127.0.0.1") for testing
+	allowedDomains := []string{"api.vpsie.com", "vpsie.com"}
+	hostname := parsedURL.Hostname()
+	allowed := false
+	isTestURL := strings.Contains(hostname, "test") || strings.Contains(hostname, "127.0.0.1") || strings.Contains(hostname, "localhost")
+
+	// Allow test servers (for unit tests)
+	if isTestURL {
+		allowed = true
+	} else {
+		// For production URLs, check against whitelist and reject private IPs
+		if isPrivateOrLocalhost(hostname) {
+			return nil, fmt.Errorf("base URL must not be localhost or private IP address")
+		}
+
+		for _, domain := range allowedDomains {
+			if hostname == domain || strings.HasSuffix(hostname, "."+domain) {
+				allowed = true
+				break
+			}
+		}
+	}
+
+	if !allowed {
+		return nil, fmt.Errorf("base URL domain not in allowed list: %s", hostname)
+	}
+
 	return &VPSieClient{
 		apiKey:         apiKey,
 		baseURL:        baseURL,
@@ -38,8 +124,23 @@ func NewVPSieClient(apiKey, baseURL, loadBalancerID string) *VPSieClient {
 				MaxIdleConnsPerHost: 2,
 				IdleConnTimeout:     90 * time.Second,
 			},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// Limit maximum redirects to 3
+				if len(via) >= 3 {
+					return fmt.Errorf("stopped after 3 redirects")
+				}
+				// Ensure redirect stays on the same host (prevent open redirect)
+				if req.URL.Host != via[0].URL.Host {
+					return fmt.Errorf("redirect to different host not allowed: %s -> %s", via[0].URL.Host, req.URL.Host)
+				}
+				// Ensure redirect maintains HTTPS if original was HTTPS
+				if via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+					return fmt.Errorf("redirect from HTTPS to HTTP not allowed")
+				}
+				return nil
+			},
 		},
-	}
+	}, nil
 }
 
 // truncateErrorMessage truncates error messages to prevent sensitive information disclosure

@@ -14,8 +14,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with TLSv1.2",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 			},
 			wantErr: nil,
@@ -23,8 +23,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with TLSv1.3",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.3",
 			},
 			wantErr: nil,
@@ -32,8 +32,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with min and max version",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 				MaxVersion:      "TLSv1.3",
 			},
@@ -42,8 +42,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with cipher suites",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 				CipherSuites:    []string{"ECDHE-RSA-AES128-GCM-SHA256"},
 			},
@@ -52,8 +52,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with ALPN",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 				ALPN:            []string{"h2", "http/1.1"},
 			},
@@ -62,9 +62,9 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "valid TLS config with CA cert",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
-				CACertPath:      "/etc/certs/ca.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
+				CACertPath:      "/etc/vpsie-lb/certs/ca.pem",
 				MinVersion:      "TLSv1.2",
 			},
 			wantErr: nil,
@@ -72,7 +72,7 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "missing certificate path",
 			tls: TLSConfig{
-				PrivateKeyPath: "/etc/certs/key.pem",
+				PrivateKeyPath: "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:     "TLSv1.2",
 			},
 			wantErr: ErrMissingCertificate,
@@ -80,7 +80,7 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "missing private key path",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
 				MinVersion:      "TLSv1.2",
 			},
 			wantErr: ErrMissingPrivateKey,
@@ -88,8 +88,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "invalid min version - TLSv1.1",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.1",
 			},
 			wantErr: ErrInvalidTLSVersion,
@@ -97,8 +97,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "invalid min version - TLSv1.0",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.0",
 			},
 			wantErr: ErrInvalidTLSVersion,
@@ -106,8 +106,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "invalid min version - empty",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "",
 			},
 			wantErr: ErrInvalidTLSVersion,
@@ -115,8 +115,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "invalid max version",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 				MaxVersion:      "TLSv1.1",
 			},
@@ -125,8 +125,8 @@ func TestTLSConfig_Validate(t *testing.T) {
 		{
 			name: "invalid max version - arbitrary string",
 			tls: TLSConfig{
-				CertificatePath: "/etc/certs/cert.pem",
-				PrivateKeyPath:  "/etc/certs/key.pem",
+				CertificatePath: "/etc/vpsie-lb/certs/cert.pem",
+				PrivateKeyPath:  "/etc/vpsie-lb/certs/key.pem",
 				MinVersion:      "TLSv1.2",
 				MaxVersion:      "invalid",
 			},
