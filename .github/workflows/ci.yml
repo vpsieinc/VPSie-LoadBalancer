@@ -84,7 +84,7 @@ jobs:
             ./cmd/agent
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vpsie-lb-agent-${{ matrix.goarch }}
           path: build/vpsie-lb-agent-${{ matrix.goarch }}
