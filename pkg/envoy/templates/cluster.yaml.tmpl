@@ -1,0 +1,55 @@
+- name: {{ .Name }}
+  connect_timeout: {{ .ConnectTimeout }}s
+  type: STRICT_DNS
+  {{- if eq .LoadBalancingAlgo "round_robin" }}
+  lb_policy: ROUND_ROBIN
+  {{- else if eq .LoadBalancingAlgo "least_request" }}
+  lb_policy: LEAST_REQUEST
+  {{- else if eq .LoadBalancingAlgo "random" }}
+  lb_policy: RANDOM
+  {{- else if eq .LoadBalancingAlgo "ring_hash" }}
+  lb_policy: RING_HASH
+  {{- end }}
+  load_assignment:
+    cluster_name: {{ .Name }}
+    endpoints:
+      - lb_endpoints:
+        {{- range .Endpoints }}
+          - endpoint:
+              address:
+                socket_address:
+                  address: {{ .Address }}
+                  port_value: {{ .Port }}
+            {{- if .Weight }}
+            load_balancing_weight: {{ .Weight }}
+            {{- end }}
+        {{- end }}
+  {{- if .HealthCheck }}
+  health_checks:
+    - timeout: {{ .HealthCheck.Timeout }}s
+      interval: {{ .HealthCheck.Interval }}s
+      unhealthy_threshold: {{ .HealthCheck.UnhealthyThreshold }}
+      healthy_threshold: {{ .HealthCheck.HealthyThreshold }}
+      {{- if eq .HealthCheck.Type "tcp" }}
+      tcp_health_check: {}
+      {{- else if or (eq .HealthCheck.Type "http") (eq .HealthCheck.Type "https") }}
+      http_health_check:
+        path: {{ .HealthCheck.Path }}
+        {{- if .HealthCheck.ExpectedStatus }}
+        expected_statuses:
+        {{- range .HealthCheck.ExpectedStatus }}
+          - start: {{ . }}
+            end: {{ . }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+  {{- if .CircuitBreakers }}
+  circuit_breakers:
+    thresholds:
+      - priority: DEFAULT
+        max_connections: {{ .CircuitBreakers.MaxConnections }}
+        max_pending_requests: {{ .CircuitBreakers.MaxPendingRequests }}
+        max_requests: {{ .CircuitBreakers.MaxRequests }}
+        max_retries: {{ .CircuitBreakers.MaxRetries }}
+  {{- end }}

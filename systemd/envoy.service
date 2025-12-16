@@ -1,0 +1,35 @@
+[Unit]
+Description=Envoy Proxy
+Documentation=https://www.envoyproxy.io/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=envoy
+Group=envoy
+ExecStart=/usr/bin/envoy -c /etc/envoy/bootstrap.yaml --service-cluster vpsie-lb --service-node ${HOSTNAME}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Logging
+SyslogIdentifier=envoy
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/envoy /var/run /etc/envoy
+
+# Resource limits
+LimitNOFILE=1048576
+LimitNPROC=512
+
+# Performance
+Nice=-10
+
+[Install]
+WantedBy=multi-user.target

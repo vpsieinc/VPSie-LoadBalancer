@@ -1,0 +1,14 @@
+vpsie:
+  api_url: https://api.vpsie.com/v1
+  api_key_file: /etc/vpsie-lb/api-key
+  loadbalancer_id: lb-changeme
+  poll_interval: 30s
+
+envoy:
+  config_path: /etc/envoy/dynamic
+  admin_address: 127.0.0.1:9901
+  binary_path: /usr/bin/envoy
+
+logging:
+  level: info
+  format: json

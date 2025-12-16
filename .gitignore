@@ -1,0 +1,50 @@
+# Binaries
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vpsie-lb-agent
+vpsie-lb-agent-*
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+
+# Build artifacts
+output/
+*.qcow2
+*.checksum
+packer_cache/
+*.box
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# Secret files
+*.key
+*.pem
+*.crt
+api-key
+.env
+
+# Go workspace
+go.work
+go.work.sum
