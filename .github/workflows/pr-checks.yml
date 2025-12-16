@@ -83,10 +83,10 @@ jobs:
 
       - name: Verify Debian cloud images are accessible
         run: |
-          # Check amd64 image URL
-          curl -sI "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2" | head -1 | grep -q "200 OK"
+          # Check amd64 image URL (follow redirects)
+          curl -sIL "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2" | grep -q "200"
           echo "amd64 cloud image is accessible"
 
-          # Check arm64 image URL
-          curl -sI "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-arm64-daily.qcow2" | head -1 | grep -q "200 OK"
+          # Check arm64 image URL (follow redirects)
+          curl -sIL "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-arm64-daily.qcow2" | grep -q "200"
           echo "arm64 cloud image is accessible"
