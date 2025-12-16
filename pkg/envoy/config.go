@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ConfigManager manages Envoy configuration files
 type ConfigManager struct {
-	validator *Validator
-	configDir string
+	validator  *Validator
+	configDir  string
+	baseDir    string // Parent of configDir for bootstrap file
 }
 
 // NewConfigManager creates a new Envoy config manager
@@ -20,10 +22,32 @@ func NewConfigManager(configDir string, validator *Validator) (*ConfigManager, e
 		return nil, fmt.Errorf("invalid config directory: %w", err)
 	}
 
+	// Store parent directory for bootstrap file validation
+	baseDir := filepath.Dir(cleanConfigDir)
+
 	return &ConfigManager{
 		configDir: cleanConfigDir,
+		baseDir:   baseDir,
 		validator: validator,
 	}, nil
+}
+
+// validatePath ensures the given path is within allowed directories
+func (cm *ConfigManager) validatePath(path string) error {
+	// Clean and get absolute path
+	cleanPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
+
+	// Check if path is within configDir or baseDir (for bootstrap)
+	if !strings.HasPrefix(cleanPath, cm.configDir+string(filepath.Separator)) &&
+		!strings.HasPrefix(cleanPath, cm.baseDir+string(filepath.Separator)) &&
+		cleanPath != cm.configDir && cleanPath != cm.baseDir {
+		return fmt.Errorf("path traversal attempt detected: %s not within allowed directories", cleanPath)
+	}
+
+	return nil
 }
 
 // WriteListeners writes the listeners configuration to file
@@ -119,6 +143,11 @@ func (cm *ConfigManager) writeConfigFile(filename string, data []byte) error {
 
 // atomicWrite writes data to a file atomically using a temp file
 func (cm *ConfigManager) atomicWrite(path string, data []byte) error {
+	// Validate path to prevent traversal attacks
+	if err := cm.validatePath(path); err != nil {
+		return err
+	}
+
 	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {

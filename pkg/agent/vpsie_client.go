@@ -52,6 +52,10 @@ func truncateErrorMessage(msg string, maxLen int) string {
 
 // GetLoadBalancerConfig fetches the load balancer configuration from VPSie API
 func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBalancer, error) {
+	// Add timeout to prevent hanging requests
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, c.loadBalancerID)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -88,6 +92,10 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 
 // UpdateLoadBalancerStatus updates the load balancer status in VPSie
 func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status string) error {
+	// Add timeout to prevent hanging requests
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("%s/loadbalancers/%s/status", c.baseURL, c.loadBalancerID)
 
 	payload := map[string]string{
@@ -126,6 +134,10 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 
 // UpdateBackendStatus updates the status of a specific backend server
 func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string, healthy bool) error {
+	// Add timeout to prevent hanging requests
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("%s/loadbalancers/%s/backends/%s/health", c.baseURL, c.loadBalancerID, backendID)
 
 	status := "unhealthy"
@@ -169,6 +181,10 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 
 // ReportMetrics sends metrics data to VPSie API
 func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]interface{}) error {
+	// Add timeout to prevent hanging requests
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("%s/loadbalancers/%s/metrics", c.baseURL, c.loadBalancerID)
 
 	jsonData, err := json.Marshal(metrics)
@@ -204,6 +220,10 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 
 // SendEvent sends an event notification to VPSie API
 func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, metadata map[string]interface{}) error {
+	// Add timeout to prevent hanging requests
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	url := fmt.Sprintf("%s/loadbalancers/%s/events", c.baseURL, c.loadBalancerID)
 
 	payload := map[string]interface{}{

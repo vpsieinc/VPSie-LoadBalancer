@@ -41,22 +41,18 @@ func (r *Reloader) Reload() error {
 		"--parent-shutdown-time-s", "10",
 	)
 
-	// Start the new Envoy process
+	// Start the new Envoy process (detached, will continue running)
 	if err := cmd.Start(); err != nil {
 		r.currentEpoch.Add(-1) // Rollback epoch on failure
 		return fmt.Errorf("failed to start new Envoy process: %w", err)
 	}
 
-	// Wait for the process to complete initialization
-	if err := cmd.Wait(); err != nil {
-		// Check if it's a normal hot restart exit
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			// Exit code 0 means success
-			if exitErr.ExitCode() != 0 {
-				r.currentEpoch.Add(-1) // Rollback epoch on failure
-				return fmt.Errorf("Envoy process exited with error: %w", err)
-			}
-		}
+	// Release the process handle - Envoy will continue running independently
+	// The hot restart mechanism will handle the transition between old and new processes
+	if err := cmd.Process.Release(); err != nil {
+		// Process started successfully but we couldn't release the handle
+		// This is not critical - log but don't fail
+		// The process will still continue running
 	}
 
 	return nil

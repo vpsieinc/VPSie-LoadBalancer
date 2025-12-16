@@ -54,6 +54,12 @@ func main() {
 		cancel()
 		agentInstance.Stop()
 
+		// Wait for agent goroutine to finish to prevent goroutine leak
+		log.Println("Waiting for agent to finish...")
+		if agentErr := <-errChan; agentErr != nil {
+			log.Printf("Agent exited with error: %v", agentErr)
+		}
+
 	case agentErr := <-errChan:
 		if agentErr != nil {
 			log.Fatalf("Agent error: %v", agentErr)
