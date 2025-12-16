@@ -1,0 +1,164 @@
+name: Check Debian Cloud Image Updates
+
+on:
+  schedule:
+    # Check daily at 6am UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    name: Check for Debian Cloud Image Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get current tracked version
+        id: current
+        run: |
+          # Read current version from a tracking file
+          if [ -f .debian-cloud-version ]; then
+            echo "version=$(cat .debian-cloud-version)" >> $GITHUB_OUTPUT
+          else
+            echo "version=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get latest Debian cloud image version
+        id: latest
+        run: |
+          # Fetch the directory listing and extract the date from the image filename
+          LATEST_DATE=$(curl -sL "https://cloud.debian.org/images/cloud/trixie/daily/latest/" | \
+            grep -oP 'debian-13-nocloud-amd64-daily-\K[0-9]+' | head -1 || echo "")
+
+          if [ -z "$LATEST_DATE" ]; then
+            # Fallback: use the Last-Modified header from the image
+            LATEST_DATE=$(curl -sIL "https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2" | \
+              grep -i "Last-Modified" | awk '{print $3, $4, $5}' | xargs -I {} date -d "{}" +%Y%m%d 2>/dev/null || date +%Y%m%d)
+          fi
+
+          echo "version=${LATEST_DATE}" >> $GITHUB_OUTPUT
+          echo "Latest Debian cloud image date: ${LATEST_DATE}"
+
+      - name: Check if update needed
+        id: check
+        run: |
+          if [ "${{ steps.current.outputs.version }}" != "${{ steps.latest.outputs.version }}" ]; then
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "Update needed: ${{ steps.current.outputs.version }} -> ${{ steps.latest.outputs.version }}"
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "No update needed, already at ${{ steps.current.outputs.version }}"
+          fi
+
+      - name: Create update branch and PR
+        if: steps.check.outputs.update_needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create new branch
+          BRANCH_NAME="auto-update/debian-cloud-${{ steps.latest.outputs.version }}"
+          git checkout -b "${BRANCH_NAME}"
+
+          # Update version tracking file
+          echo "${{ steps.latest.outputs.version }}" > .debian-cloud-version
+
+          # Commit changes
+          git add .debian-cloud-version
+          git commit -m "chore: update Debian cloud image to ${{ steps.latest.outputs.version }}
+
+          Automated update detected new Debian 13 cloud image version.
+
+          This PR will trigger image rebuilds with the latest base image,
+          including security updates and bug fixes from Debian.
+
+          🤖 Generated automatically by GitHub Actions"
+
+          # Push branch
+          git push -u origin "${BRANCH_NAME}"
+
+          # Create PR
+          gh pr create \
+            --title "Update Debian cloud image to ${{ steps.latest.outputs.version }}" \
+            --body "## Automated Debian Cloud Image Update
+
+          A new Debian 13 (Trixie) cloud image has been detected.
+
+          **Previous version:** \`${{ steps.current.outputs.version }}\`
+          **New version:** \`${{ steps.latest.outputs.version }}\`
+
+          ### What this updates:
+          - Base Debian 13 cloud image with latest security patches
+          - System packages and dependencies
+
+          ### After merging:
+          1. Create a new release tag to build updated images
+          2. The Build Images workflow will create new qcow2 images
+
+          ---
+          🤖 This PR was created automatically by the [Check Debian Updates](${{ github.server_url }}/${{ github.repository }}/actions/workflows/check-debian-updates.yml) workflow." \
+            --label "automated,dependencies"
+
+  auto-release:
+    name: Create Release After Update Merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if this is a Debian update commit
+        id: check
+        run: |
+          # Check if the last commit was a Debian cloud image update
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          if echo "$LAST_COMMIT_MSG" | grep -q "update Debian cloud image"; then
+            echo "is_update=true" >> $GITHUB_OUTPUT
+            # Extract version from commit message
+            VERSION=$(echo "$LAST_COMMIT_MSG" | grep -oP 'to \K[0-9]+' || date +%Y%m%d)
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "is_update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get next version number
+        if: steps.check.outputs.is_update == 'true'
+        id: version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+          # Parse version components
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3 | cut -d- -f1)
+
+          # Increment patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "Next version: ${NEW_VERSION}"
+
+      - name: Create release tag
+        if: steps.check.outputs.is_update == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "${{ steps.version.outputs.new_version }}" -m "Release ${{ steps.version.outputs.new_version }}
+
+          Automated release with updated Debian cloud image (${{ steps.check.outputs.version }}).
+
+          🤖 Generated automatically by GitHub Actions"
+
+          git push origin "${{ steps.version.outputs.new_version }}"
