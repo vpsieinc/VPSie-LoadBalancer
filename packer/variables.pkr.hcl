@@ -14,5 +14,5 @@ variable "version" {
 
 variable "debian_version" {
   type    = string
-  default = "12.2.0"
+  default = "12.8.0"
 }
