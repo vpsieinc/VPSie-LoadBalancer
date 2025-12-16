@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/vpsie/vpsie-loadbalancer/pkg/envoy"
@@ -22,7 +23,7 @@ type Agent struct {
 	envoyValidator *envoy.Validator
 	envoyReloader  *envoy.Reloader
 	lastConfigHash string
-	running        bool
+	running        atomic.Bool
 }
 
 // NewAgent creates a new agent instance
@@ -45,8 +46,8 @@ func NewAgent(cfg *Config) (*Agent, error) {
 		cfg.VPSie.LoadBalancerID,
 		cfg.Envoy.ConfigPath,
 		cfg.Envoy.AdminAddress,
-		9901,  // default admin port
-		50000, // max connections
+		cfg.Envoy.AdminPort,
+		cfg.Envoy.MaxConnections,
 	)
 
 	envoyValidator := envoy.NewValidator(cfg.Envoy.BinaryPath)
@@ -54,7 +55,7 @@ func NewAgent(cfg *Config) (*Agent, error) {
 	envoyReloader := envoy.NewReloader(
 		cfg.Envoy.BinaryPath,
 		cfg.Envoy.ConfigPath+"/bootstrap.yaml",
-		"/var/run/envoy.pid",
+		cfg.Envoy.PidFile,
 	)
 
 	return &Agent{
@@ -74,10 +75,10 @@ func (a *Agent) Start(ctx context.Context) error {
 	log.Printf("Load Balancer ID: %s", a.config.VPSie.LoadBalancerID)
 	log.Printf("Poll Interval: %s", a.config.VPSie.PollInterval)
 
-	a.running = true
+	a.running.Store(true)
 
 	// Initial sync
-	if err := a.syncConfiguration(); err != nil {
+	if err := a.syncConfiguration(ctx); err != nil {
 		log.Printf("Warning: Initial configuration sync failed: %v", err)
 		// Don't fail on initial sync error, continue and retry
 	}
@@ -90,11 +91,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			log.Println("Agent stopping...")
-			a.running = false
+			a.running.Store(false)
 			return nil
 
 		case <-ticker.C:
-			if err := a.syncConfiguration(); err != nil {
+			if err := a.syncConfiguration(ctx); err != nil {
 				log.Printf("Error syncing configuration: %v", err)
 			}
 		}
@@ -102,11 +103,11 @@ func (a *Agent) Start(ctx context.Context) error {
 }
 
 // syncConfiguration fetches config from VPSie and applies it to Envoy
-func (a *Agent) syncConfiguration() error {
+func (a *Agent) syncConfiguration(ctx context.Context) error {
 	log.Println("Syncing configuration from VPSie API...")
 
 	// Fetch current configuration
-	lb, err := a.vpsieClient.GetLoadBalancerConfig()
+	lb, err := a.vpsieClient.GetLoadBalancerConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch config: %w", err)
 	}
@@ -157,7 +158,7 @@ func (a *Agent) syncConfiguration() error {
 	a.lastConfigHash = configHash
 
 	// Notify VPSie of successful update
-	if err = a.vpsieClient.SendEvent("config_updated", "Configuration successfully updated", map[string]interface{}{
+	if err = a.vpsieClient.SendEvent(ctx, "config_updated", "Configuration successfully updated", map[string]interface{}{
 		"config_hash": configHash,
 		"epoch":       a.envoyReloader.GetCurrentEpoch(),
 	}); err != nil {
@@ -170,16 +171,17 @@ func (a *Agent) syncConfiguration() error {
 
 // reloadEnvoy performs a hot reload of Envoy
 func (a *Agent) reloadEnvoy() error {
-	// Note: In a real implementation, you might want to use graceful reload
-	// For now, we'll assume Envoy is managed by systemd and we just need
-	// to write the config files. Envoy will detect changes and reload.
+	// Use Envoy's hot restart mechanism with epoch tracking
+	log.Printf("Initiating Envoy hot restart (epoch: %d -> %d)",
+		a.envoyReloader.GetCurrentEpoch(),
+		a.envoyReloader.GetCurrentEpoch()+1)
 
-	// In production, you could:
-	// 1. Use Envoy's hot restart mechanism
-	// 2. Signal systemd to reload the service
-	// 3. Use Envoy's xDS API for dynamic config updates
+	if err := a.envoyReloader.Reload(); err != nil {
+		return fmt.Errorf("envoy hot restart failed: %w", err)
+	}
 
-	log.Println("Envoy configuration files updated, Envoy will detect changes")
+	log.Printf("Envoy hot restart completed successfully (epoch: %d)",
+		a.envoyReloader.GetCurrentEpoch())
 	return nil
 }
 
@@ -200,11 +202,11 @@ func (a *Agent) computeConfigHash(lb *models.LoadBalancer) string {
 
 // IsRunning returns true if the agent is running
 func (a *Agent) IsRunning() bool {
-	return a.running
+	return a.running.Load()
 }
 
 // Stop stops the agent
 func (a *Agent) Stop() {
 	log.Println("Stopping agent...")
-	a.running = false
+	a.running.Store(false)
 }
