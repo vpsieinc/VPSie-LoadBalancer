@@ -49,11 +49,7 @@ func (r *Reloader) Reload() error {
 
 	// Release the process handle - Envoy will continue running independently
 	// The hot restart mechanism will handle the transition between old and new processes
-	if err := cmd.Process.Release(); err != nil {
-		// Process started successfully but we couldn't release the handle
-		// This is not critical - log but don't fail
-		// The process will still continue running
-	}
+	_ = cmd.Process.Release() // Ignore error - process will continue running even if release fails
 
 	return nil
 }
