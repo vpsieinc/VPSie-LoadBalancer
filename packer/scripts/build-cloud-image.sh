@@ -50,6 +50,9 @@ fi
 
 echo "=== Customizing image with virt-customize ==="
 
+# Set libguestfs backend to direct (avoids passt networking issues)
+export LIBGUESTFS_BACKEND=direct
+
 # Create a temporary directory for files to copy
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf ${TEMP_DIR}" EXIT
@@ -120,25 +123,76 @@ cat > "${TEMP_DIR}/99-vpsie-lb-limits.conf" <<'EOF'
 * hard nproc 4096
 EOF
 
-# Run virt-customize
+# Create firstboot script for network-dependent operations
+cat > "${TEMP_DIR}/vpsie-firstboot.sh" <<'FIRSTBOOT'
+#!/bin/bash
+set -e
+
+# Wait for network
+sleep 10
+
+# Update and install packages
+apt-get update
+apt-get install -y curl wget gnupg ca-certificates apt-transport-https sudo vim htop net-tools iptables qemu-guest-agent
+
+# Install Envoy
+curl -sL https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+/usr/local/bin/func-e use 1.28.0
+cp ~/.func-e/versions/1.28.0/bin/envoy /usr/bin/envoy
+
+# Create envoy user
+useradd --system --no-create-home --shell /bin/false envoy || true
+
+# Create directories
+mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy
+
+# Enable services
+systemctl enable vpsie-lb-agent.service
+systemctl enable envoy.service
+systemctl enable qemu-guest-agent.service
+systemctl start qemu-guest-agent.service
+
+# Cleanup
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Remove this script after first run
+rm -f /var/lib/vpsie-firstboot-done
+touch /var/lib/vpsie-firstboot-done
+FIRSTBOOT
+chmod +x "${TEMP_DIR}/vpsie-firstboot.sh"
+
+# Create firstboot service
+cat > "${TEMP_DIR}/vpsie-firstboot.service" <<'EOF'
+[Unit]
+Description=VPSie First Boot Setup
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/vpsie-firstboot-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vpsie-firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Run virt-customize (no network operations - just copy files)
 virt-customize -a "${OUTPUT_IMAGE}" \
-    --update \
-    --install curl,wget,gnupg,ca-certificates,apt-transport-https,sudo,vim,htop,net-tools,iptables,qemu-guest-agent \
-    --run-command 'curl -sL https://func-e.io/install.sh | bash -s -- -b /usr/local/bin' \
-    --run-command 'func-e use 1.28.0' \
-    --run-command 'cp ~/.func-e/versions/1.28.0/bin/envoy /usr/bin/envoy' \
-    --run-command 'useradd --system --no-create-home --shell /bin/false envoy || true' \
-    --run-command 'mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy' \
+    --no-network \
+    --run-command 'mkdir -p /etc/vpsie-lb /etc/envoy/dynamic /var/log/envoy /usr/local/bin' \
     --copy-in "${TEMP_DIR}/vpsie-lb-agent:/usr/local/bin/" \
     --copy-in "${TEMP_DIR}/vpsie-lb-agent.service:/etc/systemd/system/" \
     --copy-in "${TEMP_DIR}/envoy.service:/etc/systemd/system/" \
     --copy-in "${TEMP_DIR}/99-vpsie-lb.conf:/etc/sysctl.d/" \
     --copy-in "${TEMP_DIR}/99-vpsie-lb-limits.conf:/etc/security/limits.d/" \
-    --run-command 'systemctl enable vpsie-lb-agent.service' \
-    --run-command 'systemctl enable envoy.service' \
-    --run-command 'systemctl enable qemu-guest-agent.service' \
-    --run-command 'apt-get clean' \
-    --run-command 'rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*'
+    --copy-in "${TEMP_DIR}/vpsie-firstboot.sh:/usr/local/bin/" \
+    --copy-in "${TEMP_DIR}/vpsie-firstboot.service:/etc/systemd/system/" \
+    --run-command 'chmod +x /usr/local/bin/vpsie-lb-agent' \
+    --run-command 'chmod +x /usr/local/bin/vpsie-firstboot.sh' \
+    --run-command 'systemctl enable vpsie-firstboot.service'
 
 # Generate checksum
 echo "=== Generating checksum ==="
