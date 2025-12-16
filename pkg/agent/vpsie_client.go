@@ -58,8 +58,8 @@ func (c *VPSieClient) GetLoadBalancerConfig() (*models.LoadBalancer, error) {
 	}
 
 	var lb models.LoadBalancer
-	if err := json.NewDecoder(resp.Body).Decode(&lb); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&lb); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	return &lb, nil
