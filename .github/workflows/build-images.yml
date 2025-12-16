@@ -98,7 +98,7 @@ jobs:
       - name: Build amd64 image
         run: |
           cd packer
-          packer build -var="version=${VERSION}" debian-amd64.pkr.hcl
+          packer build -only=qemu.debian-amd64 -var="version=${VERSION}" .
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
@@ -154,7 +154,7 @@ jobs:
       - name: Build arm64 image
         run: |
           cd packer
-          packer build -var="version=${VERSION}" debian-arm64.pkr.hcl
+          packer build -only=qemu.debian-arm64 -var="version=${VERSION}" .
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
