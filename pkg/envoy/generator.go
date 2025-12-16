@@ -177,11 +177,11 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 	// Add health check config
 	if lb.HealthCheck != nil {
 		hcData := map[string]interface{}{
-			"Type":                string(lb.HealthCheck.Type),
-			"Timeout":             lb.HealthCheck.Timeout,
-			"Interval":            lb.HealthCheck.Interval,
-			"UnhealthyThreshold":  lb.HealthCheck.UnhealthyThreshold,
-			"HealthyThreshold":    lb.HealthCheck.HealthyThreshold,
+			"Type":               string(lb.HealthCheck.Type),
+			"Timeout":            lb.HealthCheck.Timeout,
+			"Interval":           lb.HealthCheck.Interval,
+			"UnhealthyThreshold": lb.HealthCheck.UnhealthyThreshold,
+			"HealthyThreshold":   lb.HealthCheck.HealthyThreshold,
 		}
 
 		if lb.HealthCheck.IsHTTPBased() {

@@ -10,10 +10,10 @@ import (
 
 // Reloader handles hot reloading of Envoy configuration
 type Reloader struct {
-	envoyBinary    string
-	configPath     string
-	pidFile        string
-	currentEpoch   int
+	envoyBinary  string
+	configPath   string
+	pidFile      string
+	currentEpoch int
 }
 
 // NewReloader creates a new Envoy reloader

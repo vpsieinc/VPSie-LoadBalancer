@@ -42,7 +42,7 @@ func NewAgent(config *Config) (*Agent, error) {
 		config.VPSie.LoadBalancerID,
 		config.Envoy.ConfigPath,
 		config.Envoy.AdminAddress,
-		9901, // default admin port
+		9901,  // default admin port
 		50000, // max connections
 	)
 
