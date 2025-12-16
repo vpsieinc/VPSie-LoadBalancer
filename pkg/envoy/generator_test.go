@@ -50,8 +50,8 @@ func TestGenerator_GenerateListener(t *testing.T) {
 	gen := NewGenerator("test-node", "/etc/envoy", "127.0.0.1:9901", 9901, 50000)
 
 	tests := []struct {
-		name    string
 		lb      *models.LoadBalancer
+		name    string
 		wantErr bool
 	}{
 		{

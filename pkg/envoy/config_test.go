@@ -105,12 +105,12 @@ func TestConfigManager_ApplyConfig(t *testing.T) {
 
 	// Verify both files were written
 	listenersPath := filepath.Join(tmpDir, "listeners.yaml")
-	if _, err := os.Stat(listenersPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(listenersPath); os.IsNotExist(statErr) {
 		t.Error("listeners.yaml was not created")
 	}
 
 	clustersPath := filepath.Join(tmpDir, "clusters.yaml")
-	if _, err := os.Stat(clustersPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(clustersPath); os.IsNotExist(statErr) {
 		t.Error("clusters.yaml was not created")
 	}
 }
@@ -138,10 +138,10 @@ func TestConfigManager_BackupConfig(t *testing.T) {
 	backupListeners := filepath.Join(backupDir, "listeners.yaml")
 	backupClusters := filepath.Join(backupDir, "clusters.yaml")
 
-	if _, err := os.Stat(backupListeners); os.IsNotExist(err) {
+	if _, statErr := os.Stat(backupListeners); os.IsNotExist(statErr) {
 		t.Error("Backup listeners.yaml was not created")
 	}
-	if _, err := os.Stat(backupClusters); os.IsNotExist(err) {
+	if _, statErr := os.Stat(backupClusters); os.IsNotExist(statErr) {
 		t.Error("Backup clusters.yaml was not created")
 	}
 
@@ -237,7 +237,7 @@ func TestConfigManager_AtomicWrite(t *testing.T) {
 
 	// Verify temp file was removed
 	tmpPath := testPath + ".tmp"
-	if _, err := os.Stat(tmpPath); !os.IsNotExist(err) {
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
 		t.Error("Temp file was not cleaned up")
 	}
 }
@@ -257,14 +257,14 @@ func TestConfigManager_AtomicWrite_CreatesDirectory(t *testing.T) {
 	}
 
 	// Verify directory was created
-	if _, err := os.Stat(filepath.Dir(testPath)); os.IsNotExist(err) {
+	if _, statErr := os.Stat(filepath.Dir(testPath)); os.IsNotExist(statErr) {
 		t.Error("Directory was not created")
 	}
 
 	// Verify file was written
-	content, err := os.ReadFile(testPath)
-	if err != nil {
-		t.Errorf("Failed to read written file: %v", err)
+	content, readErr := os.ReadFile(testPath)
+	if readErr != nil {
+		t.Errorf("Failed to read written file: %v", readErr)
 	}
 	if string(content) != string(data) {
 		t.Errorf("File content = %v, want %v", string(content), string(data))

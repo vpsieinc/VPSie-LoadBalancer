@@ -9,10 +9,10 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	tests := []struct {
-		name       string
-		configYAML string
-		wantErr    bool
 		validate   func(*testing.T, *Config)
+		configYAML string
+		name       string
+		wantErr    bool
 	}{
 		{
 			name: "valid config with all fields",
@@ -132,10 +132,10 @@ func TestLoadConfig_FileNotFound(t *testing.T) {
 
 func TestVPSieConfig_LoadAPIKey(t *testing.T) {
 	tests := []struct {
-		name       string
 		keyContent string
-		wantErr    bool
+		name       string
 		expected   string
+		wantErr    bool
 	}{
 		{
 			name:       "valid API key",

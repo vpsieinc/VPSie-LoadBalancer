@@ -4,9 +4,9 @@ import "testing"
 
 func TestHealthCheck_Validate(t *testing.T) {
 	tests := []struct {
-		name    string
 		hc      HealthCheck
 		wantErr error
+		name    string
 	}{
 		{
 			name: "valid TCP health check",
@@ -226,8 +226,8 @@ func TestHealthCheck_Validate(t *testing.T) {
 
 func TestHealthCheck_IsHTTPBased(t *testing.T) {
 	tests := []struct {
-		name     string
 		hc       HealthCheck
+		name     string
 		expected bool
 	}{
 		{

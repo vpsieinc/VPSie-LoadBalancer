@@ -7,9 +7,9 @@ import (
 
 func TestLoadBalancer_Validate(t *testing.T) {
 	tests := []struct {
-		name    string
 		lb      LoadBalancer
 		wantErr error
+		name    string
 	}{
 		{
 			name: "valid HTTP load balancer",
