@@ -4,9 +4,9 @@ import "testing"
 
 func TestBackend_Validate(t *testing.T) {
 	tests := []struct {
-		backend Backend
 		name    string
 		wantErr error
+		backend Backend
 	}{
 		{
 			name: "valid backend with all fields",
@@ -135,8 +135,8 @@ func TestBackend_Validate(t *testing.T) {
 
 func TestBackend_IsHealthy(t *testing.T) {
 	tests := []struct {
-		backend  Backend
 		name     string
+		backend  Backend
 		expected bool
 	}{
 		{

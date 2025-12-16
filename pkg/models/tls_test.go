@@ -7,9 +7,9 @@ import (
 
 func TestTLSConfig_Validate(t *testing.T) {
 	tests := []struct {
-		tls     TLSConfig
 		name    string
 		wantErr error
+		tls     TLSConfig
 	}{
 		{
 			name: "valid TLS config with TLSv1.2",
