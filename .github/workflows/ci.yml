@@ -102,10 +102,12 @@ jobs:
           version: 'latest'
 
       - name: Initialize Packer
-        run: packer init packer/
+        working-directory: packer
+        run: packer init .
 
       - name: Validate Packer templates
-        run: packer validate -var="version=test" packer/
+        working-directory: packer
+        run: packer validate -var="version=test" .
 
   security-scan:
     name: Security Scan
