@@ -57,9 +57,11 @@ jobs:
 
       - name: Upload agent binary
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: agent-binary-${{ matrix.goarch }}
           path: build/vpsie-lb-agent-${{ matrix.goarch }}
+          retention-days: 14  # Keep for 2 weeks
 
   build-qcow2-amd64:
     name: Build qcow2 Image (amd64)
@@ -101,15 +103,19 @@ jobs:
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: qcow2-image-amd64
           path: packer/output/amd64/*.qcow2
+          retention-days: 14  # Keep for 2 weeks (large files)
 
       - name: Upload checksums
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: checksum-amd64
           path: packer/output/amd64/*.checksum
+          retention-days: 14  # Keep for 2 weeks
 
   build-qcow2-arm64:
     name: Build qcow2 Image (arm64)
@@ -151,15 +157,19 @@ jobs:
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: qcow2-image-arm64
           path: packer/output/arm64/*.qcow2
+          retention-days: 14  # Keep for 2 weeks (large files)
 
       - name: Upload checksums
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: checksum-arm64
           path: packer/output/arm64/*.checksum
+          retention-days: 14  # Keep for 2 weeks
 
   create-release:
     name: Create Release

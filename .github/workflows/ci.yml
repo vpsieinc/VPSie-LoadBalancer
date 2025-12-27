@@ -85,6 +85,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # Don't fail build if quota is hit
         with:
           name: vpsie-lb-agent-${{ matrix.goarch }}
           path: build/vpsie-lb-agent-${{ matrix.goarch }}
