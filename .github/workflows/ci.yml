@@ -88,6 +88,7 @@ jobs:
         with:
           name: vpsie-lb-agent-${{ matrix.goarch }}
           path: build/vpsie-lb-agent-${{ matrix.goarch }}
+          retention-days: 7  # Keep artifacts for 7 days to save storage
 
   validate-packer:
     name: Validate Packer Templates
