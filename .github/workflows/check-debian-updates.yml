@@ -10,6 +10,9 @@ jobs:
   check-updates:
     name: Check for Debian Cloud Image Updates
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # Allow pushing commits and branches
+      pull-requests: write   # Allow creating pull requests
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -107,6 +110,8 @@ jobs:
     name: Create Release After Update Merge
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write        # Allow pushing tags
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
