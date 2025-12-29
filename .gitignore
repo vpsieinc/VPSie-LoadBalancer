@@ -8,6 +8,7 @@ build/*
 *.dylib
 vpsie-lb-agent
 vpsie-lb-agent-*
+agent
 
 # Test binary, built with `go test -c`
 *.test
