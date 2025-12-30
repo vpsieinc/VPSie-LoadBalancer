@@ -63,8 +63,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create new branch
+          # Define branch name
           BRANCH_NAME="auto-update/debian-cloud-${{ steps.latest.outputs.version }}"
+
+          # Check if a PR already exists for this update
+          EXISTING_PR=$(gh pr list --head "${BRANCH_NAME}" --json number --jq '.[0].number' || echo "")
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists for this update. Skipping..."
+            exit 0
+          fi
+
+          # Check if branch exists on remote and delete it
+          if git ls-remote --heads origin "${BRANCH_NAME}" | grep -q "${BRANCH_NAME}"; then
+            echo "Branch ${BRANCH_NAME} exists on remote. Deleting it..."
+            git push origin --delete "${BRANCH_NAME}" || true
+          fi
+
+          # Create new branch
           git checkout -b "${BRANCH_NAME}"
 
           # Update version tracking file
