@@ -84,10 +84,11 @@ jobs:
           # Push branch
           git push -u origin "${BRANCH_NAME}"
 
-          # Create PR
+          # Create PR with proper body formatting using heredoc
           gh pr create \
             --title "Update Debian cloud image to ${{ steps.latest.outputs.version }}" \
-            --body "## Automated Debian Cloud Image Update
+            --body-file <(cat <<EOF
+          ## Automated Debian Cloud Image Update
 
           A new Debian 13 (Trixie) cloud image has been detected.
 
@@ -103,5 +104,6 @@ jobs:
           2. The Build Images workflow will create new qcow2 images
 
           ---
-          🤖 This PR was created automatically by the [Check Debian Updates](${{ github.server_url }}/${{ github.repository }}/actions/workflows/check-debian-updates.yml) workflow." \
-            --label "automated,dependencies"
+          🤖 This PR was created automatically by the [Check Debian Updates](${{ github.server_url }}/${{ github.repository }}/actions/workflows/check-debian-updates.yml) workflow.
+          EOF
+          )
