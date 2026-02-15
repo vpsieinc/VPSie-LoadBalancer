@@ -22,7 +22,7 @@ type Agent struct {
 	envoyManager   *envoy.ConfigManager
 	envoyValidator *envoy.Validator
 	envoyReloader  *envoy.Reloader
-	lastConfigHash string
+	lastConfigHash atomic.Value // stores string
 	running        atomic.Bool
 }
 
@@ -128,7 +128,11 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 
 	// Check if configuration has changed
 	configHash := a.computeConfigHash(lb)
-	if configHash == a.lastConfigHash {
+	lastHash, ok := a.lastConfigHash.Load().(string)
+	if !ok {
+		lastHash = ""
+	}
+	if configHash == lastHash {
 		log.Println("Configuration unchanged, skipping update")
 		return nil
 	}
@@ -182,7 +186,7 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 	}
 
 	// Update last config hash
-	a.lastConfigHash = configHash
+	a.lastConfigHash.Store(configHash)
 
 	// Notify VPSie of successful update
 	if err = a.vpsieClient.SendEvent(ctx, "config_updated", "Configuration successfully updated", map[string]interface{}{
