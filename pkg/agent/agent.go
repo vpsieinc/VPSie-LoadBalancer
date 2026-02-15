@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -23,6 +24,7 @@ type Agent struct {
 	envoyValidator *envoy.Validator
 	envoyReloader  *envoy.Reloader
 	lastConfigHash string
+	configMu       sync.Mutex
 	running        atomic.Bool
 }
 
@@ -128,7 +130,10 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 
 	// Check if configuration has changed
 	configHash := a.computeConfigHash(lb)
-	if configHash == a.lastConfigHash {
+	a.configMu.Lock()
+	oldHash := a.lastConfigHash
+	a.configMu.Unlock()
+	if configHash == oldHash {
 		log.Println("Configuration unchanged, skipping update")
 		return nil
 	}
@@ -182,7 +187,9 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 	}
 
 	// Update last config hash
+	a.configMu.Lock()
 	a.lastConfigHash = configHash
+	a.configMu.Unlock()
 
 	// Notify VPSie of successful update
 	if err = a.vpsieClient.SendEvent(ctx, "config_updated", "Configuration successfully updated", map[string]interface{}{
