@@ -100,6 +100,9 @@ func (lb *LoadBalancer) validateBasicFields() error {
 	if lb.Protocol != ProtocolHTTP && lb.Protocol != ProtocolHTTPS && lb.Protocol != ProtocolTCP {
 		return ErrInvalidProtocol
 	}
+	if lb.Algorithm != AlgoRoundRobin && lb.Algorithm != AlgoLeastRequest && lb.Algorithm != AlgoRandom && lb.Algorithm != AlgoRingHash {
+		return ErrInvalidAlgorithm
+	}
 	return nil
 }
 
