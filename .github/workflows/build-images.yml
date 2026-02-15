@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  schedule:
-    # Rebuild weekly on Sunday at 2am UTC to get latest Debian cloud images
-    - cron: '0 2 * * 0'
   workflow_dispatch:
     inputs:
       version:
@@ -14,15 +11,24 @@ on:
         required: true
         default: '1.0.0'
 
+# Removed weekly cron — Debian update checker already triggers rebuilds via auto-release.
+# If you need periodic rebuilds, re-add:
+#   schedule:
+#     - cron: '0 2 * * 0'
+
+permissions:
+  contents: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-agent:
-    name: Build Agent Binaries
+  build-and-release:
+    name: Build & Release (${{ matrix.goarch }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         goarch: [amd64, arm64]
     steps:
@@ -39,13 +45,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "VERSION=nightly-$(date +%Y%m%d)" >> $GITHUB_ENV
           else
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
           fi
 
-      - name: Build agent
+      - name: Build agent binary
         env:
           GOOS: linux
           GOARCH: ${{ matrix.goarch }}
@@ -54,142 +58,64 @@ jobs:
           go build -ldflags "-s -w -X main.Version=${VERSION}" \
             -o build/vpsie-lb-agent-${{ matrix.goarch }} \
             ./cmd/agent
+          chmod +x build/vpsie-lb-agent-${{ matrix.goarch }}
 
-      - name: Upload agent binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-binary-${{ matrix.goarch }}
-          path: build/vpsie-lb-agent-${{ matrix.goarch }}
-          retention-days: 14  # Keep for 2 weeks
-
-  build-qcow2-amd64:
-    name: Build qcow2 Image (amd64)
-    runs-on: ubuntu-latest
-    needs: build-agent
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download agent binary
-        uses: actions/download-artifact@v4
-        with:
-          name: agent-binary-amd64
-          path: build/
-
-      - name: Set version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "VERSION=nightly-$(date +%Y%m%d)" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-          fi
-
-      - name: Install dependencies
+      - name: Install image build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-utils libguestfs-tools
 
-      - name: Make agent executable
-        run: chmod +x build/vpsie-lb-agent-amd64
-
-      - name: Build amd64 image
+      - name: Build qcow2 image
         run: |
           chmod +x packer/scripts/build-cloud-image.sh
-          sudo packer/scripts/build-cloud-image.sh amd64 ${VERSION}
+          sudo packer/scripts/build-cloud-image.sh ${{ matrix.goarch }} ${VERSION}
 
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qcow2-image-amd64
-          path: packer/output/amd64/*.qcow2
-          retention-days: 14  # Keep for 2 weeks (large files)
-
-      - name: Upload checksums
-        uses: actions/upload-artifact@v4
-        with:
-          name: checksum-amd64
-          path: packer/output/amd64/*.checksum
-          retention-days: 14  # Keep for 2 weeks
-
-  build-qcow2-arm64:
-    name: Build qcow2 Image (arm64)
-    runs-on: ubuntu-latest
-    needs: build-agent
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download agent binary
-        uses: actions/download-artifact@v4
-        with:
-          name: agent-binary-arm64
-          path: build/
-
-      - name: Set version
-        id: version
+      - name: Prepare release assets
+        id: assets
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "VERSION=nightly-$(date +%Y%m%d)" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
-          fi
+          # List built files
+          echo "Agent binary:"
+          ls -lh build/vpsie-lb-agent-${{ matrix.goarch }}
+          echo "qcow2 image:"
+          ls -lh packer/output/${{ matrix.goarch }}/*.qcow2
+          echo "Checksums:"
+          ls -lh packer/output/${{ matrix.goarch }}/*.checksum
 
-      - name: Install dependencies
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-utils libguestfs-tools
+          TAG="${GITHUB_REF#refs/tags/}"
 
-      - name: Make agent executable
-        run: chmod +x build/vpsie-lb-agent-arm64
+          # Upload agent binary
+          gh release upload "${TAG}" \
+            "build/vpsie-lb-agent-${{ matrix.goarch }}" \
+            --clobber
 
-      - name: Build arm64 image
-        run: |
-          chmod +x packer/scripts/build-cloud-image.sh
-          sudo packer/scripts/build-cloud-image.sh arm64 ${VERSION}
+          # Upload qcow2 and checksum
+          gh release upload "${TAG}" \
+            packer/output/${{ matrix.goarch }}/*.qcow2 \
+            packer/output/${{ matrix.goarch }}/*.checksum \
+            --clobber
 
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qcow2-image-arm64
-          path: packer/output/arm64/*.qcow2
-          retention-days: 14  # Keep for 2 weeks (large files)
-
-      - name: Upload checksums
-        uses: actions/upload-artifact@v4
-        with:
-          name: checksum-arm64
-          path: packer/output/arm64/*.checksum
-          retention-days: 14  # Keep for 2 weeks
+          echo "✅ Assets uploaded for ${{ matrix.goarch }}"
 
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-qcow2-amd64, build-qcow2-arm64]
     if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
       - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            qcow2-image-amd64/*.qcow2
-            qcow2-image-arm64/*.qcow2
-            checksum-amd64/*.checksum
-            checksum-arm64/*.checksum
-            agent-binary-amd64/*
-            agent-binary-arm64/*
-          generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "${TAG}" \
+            --title "Release ${TAG}" \
+            --generate-notes \
+            --latest \
+            || echo "Release already exists, assets will be uploaded by build jobs"

@@ -83,13 +83,8 @@ jobs:
             -o build/vpsie-lb-agent-${{ matrix.goarch }} \
             ./cmd/agent
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        continue-on-error: true  # Don't fail build if quota is hit
-        with:
-          name: vpsie-lb-agent-${{ matrix.goarch }}
-          path: build/vpsie-lb-agent-${{ matrix.goarch }}
-          retention-days: 7  # Keep artifacts for 7 days to save storage
+      # No artifact upload — CI builds are just compile checks.
+      # Release builds go directly to GitHub Releases via build-images.yml.
 
   validate-packer:
     name: Validate Packer Templates
