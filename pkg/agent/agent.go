@@ -128,7 +128,10 @@ func (a *Agent) syncConfiguration(ctx context.Context) error {
 
 	// Check if configuration has changed
 	configHash := a.computeConfigHash(lb)
-	lastHash, _ := a.lastConfigHash.Load().(string)
+	lastHash, ok := a.lastConfigHash.Load().(string)
+	if !ok {
+		lastHash = ""
+	}
 	if configHash == lastHash {
 		log.Println("Configuration unchanged, skipping update")
 		return nil
