@@ -190,8 +190,8 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 		}
 
 		// Validate backend address to prevent template injection
-		if err := validateAddress(backend.Address); err != nil {
-			return nil, fmt.Errorf("invalid backend address for %s: %w", backend.ID, err)
+		if addrErr := validateAddress(backend.Address); addrErr != nil {
+			return nil, fmt.Errorf("invalid backend address for %s: %w", backend.ID, addrErr)
 		}
 
 		ep := map[string]interface{}{
@@ -217,8 +217,8 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 	// Validate and add health check config
 	if lb.HealthCheck != nil {
 		if lb.HealthCheck.IsHTTPBased() {
-			if err := validateHealthCheckPath(lb.HealthCheck.Path); err != nil {
-				return nil, fmt.Errorf("invalid health check config: %w", err)
+			if pathErr := validateHealthCheckPath(lb.HealthCheck.Path); pathErr != nil {
+				return nil, fmt.Errorf("invalid health check config: %w", pathErr)
 			}
 		}
 		hcData := map[string]interface{}{
