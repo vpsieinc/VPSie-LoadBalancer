@@ -1,8 +1,7 @@
 name: Auto Merge
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # Only trigger when all checks complete — never on PR open
   check_suite:
     types: [completed]
 
@@ -14,34 +13,52 @@ jobs:
   auto-merge:
     name: Auto Merge on Success
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'check_suite' && 
-      github.event.check_suite.conclusion == 'success' ||
-      github.event_name == 'pull_request'
+    if: github.event.check_suite.conclusion == 'success'
     steps:
-      - name: Enable auto-merge for bot PRs
+      - name: Find and merge eligible PRs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Only auto-merge PRs from github-actions bot or the repo owner
-          PR_NUMBER="${{ github.event.pull_request.number || '' }}"
+          # Get PRs associated with this check suite's head SHA
+          HEAD_SHA="${{ github.event.check_suite.head_sha }}"
+          echo "Check suite passed for ${HEAD_SHA}"
 
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No PR number — skipping"
+          # Find open PRs with this head SHA
+          PRS=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --json number,author,headRefOid \
+            --jq ".[] | select(.headRefOid == \"${HEAD_SHA}\") | .number")
+
+          if [ -z "$PRS" ]; then
+            echo "No open PRs for this SHA — skipping"
             exit 0
           fi
 
-          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author --jq '.author.login')
-          echo "PR #${PR_NUMBER} by ${PR_AUTHOR}"
-
-          # Auto-merge bot PRs (Debian updates) and owner PRs
-          if [[ "$PR_AUTHOR" == "github-actions[bot]" || "$PR_AUTHOR" == "zozo6015" ]]; then
-            echo "Enabling auto-merge for PR #${PR_NUMBER}"
-            gh pr merge "$PR_NUMBER" \
+          for PR_NUMBER in $PRS; do
+            PR_AUTHOR=$(gh pr view "$PR_NUMBER" \
               --repo "${{ github.repository }}" \
-              --auto \
-              --squash \
-              --delete-branch
-          else
-            echo "Skipping auto-merge for PR by ${PR_AUTHOR}"
-          fi
+              --json author --jq '.author.login')
+            echo "PR #${PR_NUMBER} by ${PR_AUTHOR}"
+
+            # Only auto-merge bot PRs and owner PRs
+            if [[ "$PR_AUTHOR" == "github-actions[bot]" || "$PR_AUTHOR" == "zozo6015" ]]; then
+              # Verify ALL check runs passed (not just this suite)
+              PENDING=$(gh pr checks "$PR_NUMBER" \
+                --repo "${{ github.repository }}" \
+                --json name,state \
+                --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")] | length')
+
+              if [ "$PENDING" -eq 0 ]; then
+                echo "All checks passed — merging PR #${PR_NUMBER}"
+                gh pr merge "$PR_NUMBER" \
+                  --repo "${{ github.repository }}" \
+                  --squash \
+                  --delete-branch
+              else
+                echo "Some checks still pending/failed ($PENDING) — skipping PR #${PR_NUMBER}"
+              fi
+            else
+              echo "Skipping auto-merge for PR by ${PR_AUTHOR}"
+            fi
+          done
