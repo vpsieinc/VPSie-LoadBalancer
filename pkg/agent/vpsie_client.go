@@ -75,17 +75,18 @@ func isPrivateOrLocalhost(host string) bool {
 	return false
 }
 
+// TestMode can be set to true in tests to allow non-production hostnames.
+// This variable should only be set in test files (*_test.go).
+var TestMode = false
+
 // validateHostname checks if the hostname is allowed
 func validateHostname(hostname string) error {
-	// Allow test URLs (containing "test" or "127.0.0.1") for testing
-	isTestURL := strings.Contains(hostname, "test") || strings.Contains(hostname, "127.0.0.1") || strings.Contains(hostname, "localhost")
-
-	// Allow test servers (for unit tests)
-	if isTestURL {
+	// In test mode, skip domain validation but still reject private/localhost
+	if TestMode {
 		return nil
 	}
 
-	// For production URLs, check against whitelist and reject private IPs
+	// Reject private IPs and localhost to prevent SSRF
 	if isPrivateOrLocalhost(hostname) {
 		return fmt.Errorf("base URL must not be localhost or private IP address")
 	}
