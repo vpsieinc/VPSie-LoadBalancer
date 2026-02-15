@@ -1,6 +1,6 @@
 source "qemu" "debian-amd64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-${var.debian_version}-amd64-netinst.iso"
-  iso_checksum     = "none"
+  iso_checksum     = "file:https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA256SUMS"
   output_directory = "output/amd64"
   vm_name          = "vpsie-lb-debian-13-amd64-${var.version}.qcow2"
   format           = "qcow2"
@@ -52,6 +52,16 @@ build {
       "scripts/install-agent.sh",
       "scripts/setup-systemd.sh",
       "scripts/cleanup.sh"
+    ]
+  }
+
+  # Lock build-time passwords - these are only used for Packer SSH access during build
+  # and must be locked before the image is distributed
+  provisioner "shell" {
+    inline = [
+      "passwd -l root",
+      "passwd -l vpsie",
+      "echo 'Build-time passwords locked. Use cloud-init or VPSie API for access provisioning.'"
     ]
   }
 
