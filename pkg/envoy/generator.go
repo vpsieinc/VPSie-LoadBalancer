@@ -4,11 +4,73 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"net"
+	"regexp"
+	"strconv"
 	"text/template"
 
 	"github.com/vpsie/vpsie-loadbalancer/pkg/models"
 	"gopkg.in/yaml.v3"
 )
+
+// validHealthCheckPath matches paths that start with / and contain only safe characters
+var validHealthCheckPath = regexp.MustCompile(`^/[a-zA-Z0-9/_.\-]*$`)
+
+// validateHealthCheckPath validates that a health check path is safe for template injection
+func validateHealthCheckPath(path string) error {
+	if path == "" {
+		return nil
+	}
+	if len(path) > 1024 {
+		return fmt.Errorf("health check path too long (max 1024 chars)")
+	}
+	if !validHealthCheckPath.MatchString(path) {
+		return fmt.Errorf("health check path contains invalid characters: %s (must match %s)", path, validHealthCheckPath.String())
+	}
+	return nil
+}
+
+// validateBackendAddress validates that a backend address is a valid IP or hostname
+func validateBackendAddress(address string) error {
+	if address == "" {
+		return fmt.Errorf("backend address cannot be empty")
+	}
+	if len(address) > 253 {
+		return fmt.Errorf("backend address too long")
+	}
+	// Must be a valid IP or a hostname matching safe characters
+	if net.ParseIP(address) != nil {
+		return nil
+	}
+	validHostname := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$`)
+	if !validHostname.MatchString(address) {
+		return fmt.Errorf("backend address contains invalid characters: %s", address)
+	}
+	return nil
+}
+
+// validateBackendPort validates that a backend port is in valid range
+func validateBackendPort(port int) error {
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("backend port out of range: %d", port)
+	}
+	return nil
+}
+
+// sanitizeForYAML escapes a string value to be safely embedded in YAML templates
+func sanitizeForYAML(s string) string {
+	// Use YAML marshaling to properly escape the value
+	out, err := yaml.Marshal(s)
+	if err != nil {
+		return strconv.Quote(s)
+	}
+	// yaml.Marshal adds a trailing newline; trim it
+	result := string(out)
+	if len(result) > 0 && result[len(result)-1] == '\n' {
+		result = result[:len(result)-1]
+	}
+	return result
+}
 
 //go:embed templates/listener_http.yaml.tmpl
 var listenerHTTPTemplate string
@@ -147,11 +209,19 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 		return nil, fmt.Errorf("failed to parse cluster template: %w", err)
 	}
 
-	// Prepare endpoints
+	// Validate and prepare endpoints
 	endpoints := make([]map[string]interface{}, 0, len(lb.Backends))
 	for _, backend := range lb.Backends {
 		if !backend.Enabled {
 			continue
+		}
+
+		// Validate backend address to prevent template injection
+		if err = validateBackendAddress(backend.Address); err != nil {
+			return nil, fmt.Errorf("invalid backend address: %w", err)
+		}
+		if err = validateBackendPort(backend.Port); err != nil {
+			return nil, fmt.Errorf("invalid backend port: %w", err)
 		}
 
 		ep := map[string]interface{}{
@@ -185,6 +255,10 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 		}
 
 		if lb.HealthCheck.IsHTTPBased() {
+			// Validate health check path to prevent template injection
+			if pathErr := validateHealthCheckPath(lb.HealthCheck.Path); pathErr != nil {
+				return nil, fmt.Errorf("invalid health check path: %w", pathErr)
+			}
 			hcData["Path"] = lb.HealthCheck.Path
 			if len(lb.HealthCheck.ExpectedStatus) > 0 {
 				hcData["ExpectedStatus"] = lb.HealthCheck.ExpectedStatus
