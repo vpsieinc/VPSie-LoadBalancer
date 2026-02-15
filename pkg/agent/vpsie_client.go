@@ -192,7 +192,7 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 		// Drain response body to enable HTTP connection reuse
 		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK {
@@ -245,7 +245,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 		// Drain response body to enable HTTP connection reuse
 		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
@@ -297,7 +297,7 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 		// Drain response body to enable HTTP connection reuse
 		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
@@ -341,7 +341,7 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 		// Drain response body to enable HTTP connection reuse
 		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
@@ -392,7 +392,7 @@ func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, 
 		// Drain response body to enable HTTP connection reuse
 		//nolint:errcheck // Intentionally ignore - draining is best effort for connection reuse
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
