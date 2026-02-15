@@ -183,7 +183,7 @@ func (cm *ConfigManager) atomicWrite(path string, data []byte) error {
 
 	// Atomic rename
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath) // Cleanup on failure
+		_ = os.Remove(tmpPath) // Cleanup on failure
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 
