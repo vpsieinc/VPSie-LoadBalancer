@@ -170,8 +170,15 @@ sleep 10
 apt-get update
 apt-get install -y curl wget gnupg ca-certificates apt-transport-https sudo vim htop net-tools iptables qemu-guest-agent
 
-# Install Envoy
-curl -sL https://func-e.io/install.sh | bash -s -- -b /usr/local/bin
+# Install Envoy (download binary directly instead of curl|bash)
+FUNC_E_VERSION="1.1.4"
+FUNC_E_ARCH=$(uname -m)
+if [ "$FUNC_E_ARCH" = "x86_64" ]; then FUNC_E_ARCH="amd64"; fi
+if [ "$FUNC_E_ARCH" = "aarch64" ]; then FUNC_E_ARCH="arm64"; fi
+curl -sL -o /usr/local/bin/func-e "https://github.com/tetratelabs/func-e/releases/download/v${FUNC_E_VERSION}/func-e_${FUNC_E_VERSION}_linux_${FUNC_E_ARCH}"
+chmod +x /usr/local/bin/func-e
+# Verify the binary runs
+/usr/local/bin/func-e --version
 /usr/local/bin/func-e use 1.28.0
 cp ~/.func-e/versions/1.28.0/bin/envoy /usr/bin/envoy
 
