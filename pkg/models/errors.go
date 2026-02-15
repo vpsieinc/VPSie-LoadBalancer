@@ -9,6 +9,7 @@ var (
 	ErrInvalidPort      = errors.New("invalid port number")
 	ErrInvalidProtocol  = errors.New("invalid protocol")
 	ErrNoBackends       = errors.New("no backends configured")
+	ErrInvalidAlgorithm = errors.New("invalid load balancing algorithm")
 	ErrMissingTLSConfig = errors.New("HTTPS protocol requires TLS configuration")
 )
 
