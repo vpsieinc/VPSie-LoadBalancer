@@ -168,6 +168,27 @@ func truncateErrorMessage(msg string, maxLen int) string {
 	return msg[:maxLen] + "... (truncated)"
 }
 
+// doWithRetry retries a function on 5xx responses and network errors with exponential backoff
+func doWithRetry(fn func() (*http.Response, error), maxRetries int) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		resp, err = fn()
+		if err == nil && resp.StatusCode < 500 {
+			return resp, nil
+		}
+		if attempt < maxRetries {
+			// Close body from failed attempt before retry
+			if resp != nil {
+				resp.Body.Close()
+			}
+			backoff := time.Duration(1<<uint(attempt)) * time.Second // 1s, 2s, 4s
+			time.Sleep(backoff)
+		}
+	}
+	return resp, err
+}
+
 // GetLoadBalancerConfig fetches the load balancer configuration from VPSie API
 func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBalancer, error) {
 	// Add timeout to prevent hanging requests
@@ -184,7 +205,9 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := doWithRetry(func() (*http.Response, error) {
+		return c.httpClient.Do(req)
+	}, 3)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
