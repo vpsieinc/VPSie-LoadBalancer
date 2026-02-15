@@ -191,21 +191,18 @@ func doWithRetry(fn func() (*http.Response, error), maxRetries int) (*http.Respo
 
 // GetLoadBalancerConfig fetches the load balancer configuration from VPSie API
 func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBalancer, error) {
-	// Add timeout to prevent hanging requests
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	url := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, sanitizeID(c.loadBalancerID))
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
-	req.Header.Set("Content-Type", "application/json")
+	reqURL := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, sanitizeID(c.loadBalancerID))
 
 	resp, err := doWithRetry(func() (*http.Response, error) {
+		reqCtx, reqCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer reqCancel()
+
+		req, reqErr := http.NewRequestWithContext(reqCtx, "GET", reqURL, nil)
+		if reqErr != nil {
+			return nil, reqErr
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+		req.Header.Set("Content-Type", "application/json")
 		return c.httpClient.Do(req)
 	}, 3)
 	if err != nil {
