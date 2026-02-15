@@ -4,11 +4,46 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"net"
+	"regexp"
 	"text/template"
 
 	"github.com/vpsie/vpsie-loadbalancer/pkg/models"
 	"gopkg.in/yaml.v3"
 )
+
+var healthCheckPathRegex = regexp.MustCompile(`^/[a-zA-Z0-9/_\-.]*$`)
+var hostnameRegex = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$`)
+
+// validateHealthCheckPath validates that a health check path is safe for template rendering
+func validateHealthCheckPath(path string) error {
+	if path == "" {
+		return nil
+	}
+	if !healthCheckPathRegex.MatchString(path) {
+		return fmt.Errorf("invalid health check path %q: must start with / and contain only [a-zA-Z0-9/_\\-.]", path)
+	}
+	return nil
+}
+
+// validateAddress validates that an address is a valid hostname or IP, safe for template rendering
+func validateAddress(addr string) error {
+	if addr == "" {
+		return fmt.Errorf("address must not be empty")
+	}
+	// Check if it's a valid IP
+	if net.ParseIP(addr) != nil {
+		return nil
+	}
+	// Check if it's a valid hostname
+	if len(addr) > 253 {
+		return fmt.Errorf("address %q too long", addr)
+	}
+	if !hostnameRegex.MatchString(addr) {
+		return fmt.Errorf("invalid address %q: must be a valid hostname or IP", addr)
+	}
+	return nil
+}
 
 //go:embed templates/listener_http.yaml.tmpl
 var listenerHTTPTemplate string
@@ -147,11 +182,16 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 		return nil, fmt.Errorf("failed to parse cluster template: %w", err)
 	}
 
-	// Prepare endpoints
+	// Validate and prepare endpoints
 	endpoints := make([]map[string]interface{}, 0, len(lb.Backends))
 	for _, backend := range lb.Backends {
 		if !backend.Enabled {
 			continue
+		}
+
+		// Validate backend address to prevent template injection
+		if err := validateAddress(backend.Address); err != nil {
+			return nil, fmt.Errorf("invalid backend address for %s: %w", backend.ID, err)
 		}
 
 		ep := map[string]interface{}{
@@ -174,8 +214,13 @@ func (g *Generator) GenerateCluster(lb *models.LoadBalancer) ([]byte, error) {
 		"Endpoints":         endpoints,
 	}
 
-	// Add health check config
+	// Validate and add health check config
 	if lb.HealthCheck != nil {
+		if lb.HealthCheck.IsHTTPBased() {
+			if err := validateHealthCheckPath(lb.HealthCheck.Path); err != nil {
+				return nil, fmt.Errorf("invalid health check config: %w", err)
+			}
+		}
 		hcData := map[string]interface{}{
 			"Type":               string(lb.HealthCheck.Type),
 			"Timeout":            lb.HealthCheck.Timeout,

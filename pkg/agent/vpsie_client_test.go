@@ -5,11 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/vpsie/vpsie-loadbalancer/pkg/models"
 )
+
+func TestMain(m *testing.M) {
+	TestMode = true
+	os.Exit(m.Run())
+}
 
 func TestNewVPSieClient(t *testing.T) {
 	client, _ := NewVPSieClient("test-key", "https://api.test.com", "lb-123")
