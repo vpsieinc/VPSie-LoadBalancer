@@ -182,7 +182,7 @@ func doWithRetry(fn func() (*http.Response, error), maxRetries int) (*http.Respo
 			if resp != nil {
 				_ = resp.Body.Close()
 			}
-			backoff := time.Duration(1<<uint(attempt)) * time.Second // 1s, 2s, 4s
+			backoff := time.Second * time.Duration(attempt+1) // 1s, 2s, 3s linear backoff
 			time.Sleep(backoff)
 		}
 	}
