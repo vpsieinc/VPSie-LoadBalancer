@@ -24,6 +24,7 @@ type Agent struct {
 	envoyReloader  *envoy.Reloader
 	lastConfigHash atomic.Value // stores string
 	running        atomic.Bool
+	cancel         context.CancelFunc
 }
 
 // NewAgent creates a new agent instance
@@ -81,6 +82,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	if !a.running.CompareAndSwap(false, true) {
 		return fmt.Errorf("agent is already running")
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	a.cancel = cancel
 
 	log.Printf("Starting VPSie Load Balancer Agent...")
 	log.Printf("Load Balancer ID: %s", a.config.VPSie.LoadBalancerID)
@@ -240,4 +244,7 @@ func (a *Agent) IsRunning() bool {
 func (a *Agent) Stop() {
 	log.Println("Stopping agent...")
 	a.running.Store(false)
+	if a.cancel != nil {
+		a.cancel()
+	}
 }
