@@ -62,8 +62,8 @@ func isPrivateOrLocalhost(host string) bool {
 	}
 
 	for _, cidr := range privateRanges {
-		_, ipNet, err := net.ParseCIDR(cidr)
-		if err != nil {
+		_, ipNet, parseErr := net.ParseCIDR(cidr)
+		if parseErr != nil {
 			// This should never happen with hardcoded CIDRs, but check anyway
 			continue
 		}
@@ -75,13 +75,13 @@ func isPrivateOrLocalhost(host string) bool {
 	return false
 }
 
+// TestMode allows tests to bypass hostname validation. Must only be set in test code.
+var TestMode bool
+
 // validateHostname checks if the hostname is allowed
 func validateHostname(hostname string) error {
-	// Allow test URLs (containing "test" or "127.0.0.1") for testing
-	isTestURL := strings.Contains(hostname, "test") || strings.Contains(hostname, "127.0.0.1") || strings.Contains(hostname, "localhost")
-
-	// Allow test servers (for unit tests)
-	if isTestURL {
+	// Allow bypassing validation in test mode only
+	if TestMode {
 		return nil
 	}
 
