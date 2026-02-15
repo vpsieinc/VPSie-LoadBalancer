@@ -100,6 +100,19 @@ func validateHostname(hostname string) error {
 	return fmt.Errorf("base URL domain not in allowed list: %s", hostname)
 }
 
+// validateID checks that an ID parameter is safe for URL construction
+func validateID(id, name string) error {
+	if id == "" {
+		return fmt.Errorf("%s cannot be empty", name)
+	}
+	for _, c := range id {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			return fmt.Errorf("%s contains invalid character: %c", name, c)
+		}
+	}
+	return nil
+}
+
 // NewVPSieClient creates a new VPSie API client with URL validation
 func NewVPSieClient(apiKey, baseURL, loadBalancerID string) (*VPSieClient, error) {
 	// Validate base URL
@@ -162,7 +175,7 @@ func (c *VPSieClient) GetLoadBalancerConfig(ctx context.Context) (*models.LoadBa
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	url := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, c.loadBalancerID)
+	url := fmt.Sprintf("%s/loadbalancers/%s", c.baseURL, url.PathEscape(c.loadBalancerID))
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -207,7 +220,7 @@ func (c *VPSieClient) UpdateLoadBalancerStatus(ctx context.Context, status strin
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	url := fmt.Sprintf("%s/loadbalancers/%s/status", c.baseURL, c.loadBalancerID)
+	url := fmt.Sprintf("%s/loadbalancers/%s/status", c.baseURL, url.PathEscape(c.loadBalancerID))
 
 	payload := map[string]string{
 		"status": status,
@@ -254,7 +267,7 @@ func (c *VPSieClient) UpdateBackendStatus(ctx context.Context, backendID string,
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	url := fmt.Sprintf("%s/loadbalancers/%s/backends/%s/health", c.baseURL, c.loadBalancerID, backendID)
+	url := fmt.Sprintf("%s/loadbalancers/%s/backends/%s/health", c.baseURL, url.PathEscape(c.loadBalancerID), url.PathEscape(backendID))
 
 	status := "unhealthy"
 	if healthy {
@@ -306,7 +319,7 @@ func (c *VPSieClient) ReportMetrics(ctx context.Context, metrics map[string]inte
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	url := fmt.Sprintf("%s/loadbalancers/%s/metrics", c.baseURL, c.loadBalancerID)
+	url := fmt.Sprintf("%s/loadbalancers/%s/metrics", c.baseURL, url.PathEscape(c.loadBalancerID))
 
 	jsonData, err := json.Marshal(metrics)
 	if err != nil {
@@ -350,7 +363,7 @@ func (c *VPSieClient) SendEvent(ctx context.Context, eventType, message string, 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	url := fmt.Sprintf("%s/loadbalancers/%s/events", c.baseURL, c.loadBalancerID)
+	url := fmt.Sprintf("%s/loadbalancers/%s/events", c.baseURL, url.PathEscape(c.loadBalancerID))
 
 	payload := map[string]interface{}{
 		"type":      eventType,
