@@ -54,17 +54,16 @@ type Timeouts struct {
 
 // Validate validates the load balancer configuration
 func (lb *LoadBalancer) Validate() error {
-	if err := lb.validateBasicFields(); err != nil {
-		return err
-	}
-	if err := lb.validateBackends(); err != nil {
-		return err
-	}
-	if err := lb.validateTLSConfig(); err != nil {
-		return err
-	}
-	if err := lb.validateHealthCheck(); err != nil {
-		return err
+	for _, fn := range []func() error{
+		lb.validateBasicFields,
+		lb.validateAlgorithm,
+		lb.validateBackends,
+		lb.validateTLSConfig,
+		lb.validateHealthCheck,
+	} {
+		if err := fn(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -100,10 +99,16 @@ func (lb *LoadBalancer) validateBasicFields() error {
 	if lb.Protocol != ProtocolHTTP && lb.Protocol != ProtocolHTTPS && lb.Protocol != ProtocolTCP {
 		return ErrInvalidProtocol
 	}
-	if lb.Algorithm != AlgoRoundRobin && lb.Algorithm != AlgoLeastRequest && lb.Algorithm != AlgoRandom && lb.Algorithm != AlgoRingHash {
+	return nil
+}
+
+func (lb *LoadBalancer) validateAlgorithm() error {
+	switch lb.Algorithm {
+	case AlgoRoundRobin, AlgoLeastRequest, AlgoRandom, AlgoRingHash:
+		return nil
+	default:
 		return ErrInvalidAlgorithm
 	}
-	return nil
 }
 
 func (lb *LoadBalancer) validateBackends() error {
