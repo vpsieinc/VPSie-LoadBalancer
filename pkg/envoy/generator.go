@@ -13,7 +13,6 @@ import (
 )
 
 var healthCheckPathRegex = regexp.MustCompile(`^/[a-zA-Z0-9/_\-.]*$`)
-var hostnameRegex = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$`)
 
 // validateHealthCheckPath validates that a health check path is safe for template rendering
 func validateHealthCheckPath(path string) error {
@@ -39,7 +38,7 @@ func validateAddress(addr string) error {
 	if len(addr) > 253 {
 		return fmt.Errorf("address %q too long", addr)
 	}
-	if !hostnameRegex.MatchString(addr) {
+	if !models.HostnameRegex.MatchString(addr) {
 		return fmt.Errorf("invalid address %q: must be a valid hostname or IP", addr)
 	}
 	return nil

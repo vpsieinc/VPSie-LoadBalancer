@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	// hostnameRegex validates hostnames according to RFC 1123
-	hostnameRegex = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`)
+	// HostnameRegex validates hostnames according to RFC 1123
+	HostnameRegex = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`)
 )
 
 // Backend represents a backend server
@@ -32,7 +32,7 @@ func (b *Backend) Validate() error {
 	// Validate address is either a valid IP or hostname
 	if net.ParseIP(b.Address) == nil {
 		// Not an IP, check if valid hostname
-		if !hostnameRegex.MatchString(b.Address) {
+		if !HostnameRegex.MatchString(b.Address) {
 			return ErrInvalidBackendAddress
 		}
 		// Validate hostname length (max 253 chars per RFC 1035)

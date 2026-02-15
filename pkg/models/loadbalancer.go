@@ -66,6 +66,9 @@ func (lb *LoadBalancer) Validate() error {
 	if err := lb.validateHealthCheck(); err != nil {
 		return err
 	}
+	if err := lb.validateTimeouts(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -131,6 +134,15 @@ func (lb *LoadBalancer) validateHealthCheck() error {
 	if lb.HealthCheck != nil {
 		if err := lb.HealthCheck.Validate(); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (lb *LoadBalancer) validateTimeouts() error {
+	if lb.Timeouts != nil {
+		if lb.Timeouts.Connect < 0 || lb.Timeouts.Idle < 0 || lb.Timeouts.Request < 0 {
+			return ErrInvalidTimeout
 		}
 	}
 	return nil

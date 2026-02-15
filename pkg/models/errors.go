@@ -10,6 +10,8 @@ var (
 	ErrInvalidProtocol  = errors.New("invalid protocol")
 	ErrNoBackends       = errors.New("no backends configured")
 	ErrMissingTLSConfig = errors.New("HTTPS protocol requires TLS configuration")
+	ErrInvalidAlgorithm = errors.New("invalid load balancing algorithm")
+	ErrInvalidTimeout   = errors.New("timeout values must be non-negative")
 )
 
 // Backend validation errors
