@@ -50,8 +50,11 @@ func (r *Reloader) Reload() error {
 
 	// Start the new Envoy process (detached, will continue running)
 	if err := cmd.Start(); err != nil {
-		r.currentEpoch.Add(-1) // Rollback epoch on failure
-		return fmt.Errorf("failed to start new Envoy process: %w", err)
+		// Design decision: do NOT rollback the epoch on failure. Rolling back
+		// could cause epoch collisions if a previous Envoy process is still
+		// running with the same epoch. Instead, we leave the epoch incremented
+		// and log the error. The next reload attempt will use the next epoch.
+		return fmt.Errorf("failed to start new Envoy process (epoch %d): %w", newEpoch, err)
 	}
 
 	// Release the process handle - Envoy will continue running independently
