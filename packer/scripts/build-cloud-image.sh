@@ -172,7 +172,13 @@ apt-get install -y curl wget gnupg ca-certificates apt-transport-https sudo vim 
 
 # Install func-e (direct binary download instead of curl|bash)
 FUNC_E_VERSION="1.1.3"
-curl -sLo /tmp/func-e "https://github.com/tetratelabs/func-e/releases/download/v${FUNC_E_VERSION}/func-e_${FUNC_E_VERSION}_linux_amd64"
+FUNC_E_ARCH=$(uname -m)
+case "$FUNC_E_ARCH" in
+    x86_64)  FUNC_E_ARCH="amd64" ;;
+    aarch64) FUNC_E_ARCH="arm64" ;;
+    *)       echo "Unsupported architecture: $FUNC_E_ARCH"; exit 1 ;;
+esac
+curl -sLo /tmp/func-e "https://github.com/tetratelabs/func-e/releases/download/v${FUNC_E_VERSION}/func-e_${FUNC_E_VERSION}_linux_${FUNC_E_ARCH}"
 chmod +x /tmp/func-e
 mv /tmp/func-e /usr/local/bin/func-e
 

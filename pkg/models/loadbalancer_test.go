@@ -130,21 +130,23 @@ func TestLoadBalancer_Validate(t *testing.T) {
 		{
 			name: "no backends",
 			lb: LoadBalancer{
-				ID:       "lb-123",
-				Name:     "test-lb",
-				Protocol: ProtocolHTTP,
-				Port:     80,
-				Backends: []Backend{},
+				ID:        "lb-123",
+				Name:      "test-lb",
+				Protocol:  ProtocolHTTP,
+				Algorithm: AlgoRoundRobin,
+				Port:      80,
+				Backends:  []Backend{},
 			},
 			wantErr: ErrNoBackends,
 		},
 		{
 			name: "HTTPS without TLS config",
 			lb: LoadBalancer{
-				ID:       "lb-123",
-				Name:     "test-lb",
-				Protocol: ProtocolHTTPS,
-				Port:     443,
+				ID:        "lb-123",
+				Name:      "test-lb",
+				Protocol:  ProtocolHTTPS,
+				Algorithm: AlgoRoundRobin,
+				Port:      443,
 				Backends: []Backend{
 					{ID: "be-1", Address: "10.0.0.1", Port: 8080, Enabled: true},
 				},
@@ -154,10 +156,11 @@ func TestLoadBalancer_Validate(t *testing.T) {
 		{
 			name: "invalid backend",
 			lb: LoadBalancer{
-				ID:       "lb-123",
-				Name:     "test-lb",
-				Protocol: ProtocolHTTP,
-				Port:     80,
+				ID:        "lb-123",
+				Name:      "test-lb",
+				Protocol:  ProtocolHTTP,
+				Algorithm: AlgoRoundRobin,
+				Port:      80,
 				Backends: []Backend{
 					{ID: "", Address: "10.0.0.1", Port: 8080, Enabled: true},
 				},
@@ -191,10 +194,11 @@ func TestLoadBalancer_Validate(t *testing.T) {
 		{
 			name: "invalid health check",
 			lb: LoadBalancer{
-				ID:       "lb-123",
-				Name:     "test-lb",
-				Protocol: ProtocolHTTP,
-				Port:     80,
+				ID:        "lb-123",
+				Name:      "test-lb",
+				Protocol:  ProtocolHTTP,
+				Algorithm: AlgoRoundRobin,
+				Port:      80,
 				Backends: []Backend{
 					{ID: "be-1", Address: "10.0.0.1", Port: 8080, Enabled: true},
 				},
