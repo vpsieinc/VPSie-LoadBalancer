@@ -1,0 +1,47 @@
+name: Auto Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto Merge on Success
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'check_suite' && 
+      github.event.check_suite.conclusion == 'success' ||
+      github.event_name == 'pull_request'
+    steps:
+      - name: Enable auto-merge for bot PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Only auto-merge PRs from github-actions bot or the repo owner
+          PR_NUMBER="${{ github.event.pull_request.number || '' }}"
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR number — skipping"
+            exit 0
+          fi
+
+          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author --jq '.author.login')
+          echo "PR #${PR_NUMBER} by ${PR_AUTHOR}"
+
+          # Auto-merge bot PRs (Debian updates) and owner PRs
+          if [[ "$PR_AUTHOR" == "github-actions[bot]" || "$PR_AUTHOR" == "zozo6015" ]]; then
+            echo "Enabling auto-merge for PR #${PR_NUMBER}"
+            gh pr merge "$PR_NUMBER" \
+              --repo "${{ github.repository }}" \
+              --auto \
+              --squash \
+              --delete-branch
+          else
+            echo "Skipping auto-merge for PR by ${PR_AUTHOR}"
+          fi
