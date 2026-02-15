@@ -63,8 +63,8 @@ func isPrivateOrLocalhost(host string) bool {
 	}
 
 	for _, cidr := range privateRanges {
-		_, ipNet, err := net.ParseCIDR(cidr)
-		if err != nil {
+		_, ipNet, parseErr := net.ParseCIDR(cidr)
+		if parseErr != nil {
 			// This should never happen with hardcoded CIDRs, but check anyway
 			continue
 		}

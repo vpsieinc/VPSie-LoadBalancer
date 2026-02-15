@@ -1,6 +1,6 @@
 source "qemu" "debian-arm64" {
   iso_url          = "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-${var.debian_version}-arm64-netinst.iso"
-  iso_checksum     = "none"
+  iso_checksum     = "sha512:c80251cfa9af57568ed776fc06dd9c9781834549d0dd95e96f901d52cd1d45394a0f8df47e61a7b883ef1a0e6a2b25b9c499567fc348e243674fb847b49070d1"
   output_directory = "output/arm64"
   vm_name          = "vpsie-lb-debian-13-arm64-${var.version}.qcow2"
   format           = "qcow2"
