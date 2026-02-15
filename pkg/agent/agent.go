@@ -82,6 +82,9 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("agent is already running")
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	a.cancel = cancel
+
 	log.Printf("Starting VPSie Load Balancer Agent...")
 	log.Printf("Load Balancer ID: %s", a.config.VPSie.LoadBalancerID)
 	log.Printf("Poll Interval: %s", a.config.VPSie.PollInterval)
@@ -232,8 +235,11 @@ func (a *Agent) IsRunning() bool {
 	return a.running.Load()
 }
 
-// Stop stops the agent
+// Stop stops the agent by cancelling its context
 func (a *Agent) Stop() {
 	log.Println("Stopping agent...")
+	if a.cancel != nil {
+		a.cancel()
+	}
 	a.running.Store(false)
 }

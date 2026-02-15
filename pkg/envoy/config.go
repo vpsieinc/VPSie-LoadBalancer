@@ -104,7 +104,7 @@ func (cm *ConfigManager) ApplyConfig(config *EnvoyConfig) error {
 // BackupConfig backs up the current configuration
 func (cm *ConfigManager) BackupConfig() error {
 	backupDir := filepath.Join(cm.configDir, ".backup")
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
+	if err := os.MkdirAll(backupDir, 0700); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
