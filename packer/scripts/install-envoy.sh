@@ -8,7 +8,9 @@ ARCH=$(dpkg --print-architecture)
 echo "Architecture: $ARCH"
 
 # Add Envoy repository (using Tetrate GetEnvoy)
-curl -sL 'https://getenvoy.io/gpg' | gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg
+curl -sLo /tmp/envoy-gpg.key 'https://getenvoy.io/gpg'
+gpg --dearmor -o /usr/share/keyrings/getenvoy-keyring.gpg /tmp/envoy-gpg.key
+rm -f /tmp/envoy-gpg.key
 
 echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/getenvoy-keyring.gpg] https://deb.dl.getenvoy.io/public/deb/debian $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/getenvoy.list
